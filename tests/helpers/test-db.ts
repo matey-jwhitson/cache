@@ -1,12 +1,19 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "../../src/generated/prisma/client.js";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 let prisma: PrismaClient | null = null;
 
 export function getTestDb(): PrismaClient {
   if (!prisma) {
-    prisma = new PrismaClient({
-      datasourceUrl: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
-    });
+    const connectionString =
+      process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
+    if (!connectionString) {
+      throw new Error(
+        "TEST_DATABASE_URL or DATABASE_URL environment variable is not set"
+      );
+    }
+    const adapter = new PrismaPg({ connectionString });
+    prisma = new PrismaClient({ adapter });
   }
   return prisma;
 }
