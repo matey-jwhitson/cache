@@ -9,7 +9,7 @@ export class GrokProvider implements Provider {
   readonly defaultModel: string;
   private apiKey: string;
 
-  constructor(apiKey: string, model = "grok-2-latest") {
+  constructor(apiKey: string, model = "grok-4") {
     this.defaultModel = model;
     this.apiKey = apiKey;
   }

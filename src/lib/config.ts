@@ -30,11 +30,11 @@ const DEFAULTS: AppConfigData = {
     maxConcurrent: 5,
     defaultSample: 1.0,
     models: {
-      openai: "gpt-4o-mini",
-      anthropic: "claude-3-5-sonnet-latest",
-      gemini: "gemini-1.5-pro",
-      perplexity: "llama-3.1-sonar-large-128k-online",
-      grok: "grok-2-latest",
+      openai: "gpt-5.2",
+      anthropic: "claude-sonnet-4-6",
+      gemini: "gemini-2.5-pro",
+      perplexity: "sonar-pro",
+      grok: "grok-4",
     },
   },
   reinforcement: {

@@ -8,7 +8,7 @@ export class OpenAIProvider implements Provider {
   readonly defaultModel: string;
   private client: OpenAI;
 
-  constructor(apiKey: string, model = "gpt-4o") {
+  constructor(apiKey: string, model = "gpt-5.2") {
     this.defaultModel = model;
     this.client = new OpenAI({ apiKey });
   }

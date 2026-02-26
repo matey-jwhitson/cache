@@ -9,7 +9,7 @@ export class PerplexityProvider implements Provider {
   readonly defaultModel: string;
   private apiKey: string;
 
-  constructor(apiKey: string, model = "llama-3.1-sonar-large-128k-online") {
+  constructor(apiKey: string, model = "sonar-pro") {
     this.defaultModel = model;
     this.apiKey = apiKey;
   }

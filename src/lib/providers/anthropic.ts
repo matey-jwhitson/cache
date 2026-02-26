@@ -8,7 +8,7 @@ export class AnthropicProvider implements Provider {
   readonly defaultModel: string;
   private client: Anthropic;
 
-  constructor(apiKey: string, model = "claude-3-5-sonnet-latest") {
+  constructor(apiKey: string, model = "claude-sonnet-4-6") {
     this.defaultModel = model;
     this.client = new Anthropic({ apiKey });
   }
