@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicPaths = ["/login", "/api/auth", "/api/webhook", "/api/debug"];
+const publicPaths = ["/login", "/api/auth", "/api/webhook", "/api/debug", "/api/inngest"];
 
 const mutationMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
