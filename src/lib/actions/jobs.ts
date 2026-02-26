@@ -4,6 +4,32 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { inngest } from "@/inngest/client";
 
+async function dispatchOrFail(
+  jobId: string,
+  eventName: string,
+) {
+  try {
+    await inngest.send({
+      name: eventName,
+      data: { jobRunId: jobId },
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to dispatch job";
+
+    await db.jobRun.update({
+      where: { id: jobId },
+      data: {
+        status: "failed",
+        completedAt: new Date(),
+        errorMessage: `Dispatch failed: ${message}`,
+      },
+    });
+
+    throw new Error(`Job dispatch failed: ${message}`);
+  }
+}
+
 export async function triggerAudit() {
   const user = await requireAuth();
 
@@ -15,11 +41,7 @@ export async function triggerAudit() {
     },
   });
 
-  await inngest.send({
-    name: "cache/audit.requested",
-    data: { jobRunId: job.id },
-  });
-
+  await dispatchOrFail(job.id, "cache/audit.requested");
   return { jobId: job.id, status: "started" };
 }
 
@@ -34,11 +56,7 @@ export async function triggerReinforcement() {
     },
   });
 
-  await inngest.send({
-    name: "cache/reinforce.requested",
-    data: { jobRunId: job.id },
-  });
-
+  await dispatchOrFail(job.id, "cache/reinforce.requested");
   return { jobId: job.id, status: "started" };
 }
 
@@ -53,10 +71,6 @@ export async function triggerContentBuild() {
     },
   });
 
-  await inngest.send({
-    name: "cache/content.build.requested",
-    data: { jobRunId: job.id },
-  });
-
+  await dispatchOrFail(job.id, "cache/content.build.requested");
   return { jobId: job.id, status: "started" };
 }

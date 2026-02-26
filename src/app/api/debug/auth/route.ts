@@ -16,6 +16,13 @@ export async function GET() {
     DATABASE_URL: process.env.DATABASE_URL
       ? `${process.env.DATABASE_URL.substring(0, 30)}...`
       : "MISSING",
+    INNGEST_EVENT_KEY: !!process.env.INNGEST_EVENT_KEY,
+    INNGEST_SIGNING_KEY: !!process.env.INNGEST_SIGNING_KEY,
+    OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
+    ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
+    GEMINI_API_KEY: !!process.env.GEMINI_API_KEY,
+    PPLX_API_KEY: !!process.env.PPLX_API_KEY,
+    XAI_API_KEY: !!process.env.XAI_API_KEY,
   };
 
   try {
@@ -33,6 +40,24 @@ export async function GET() {
     checks.accounts = { count: accountCount };
   } catch (e) {
     checks.accounts = {
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  try {
+    const recentJobs = await db.jobRun.findMany({
+      take: 5,
+      orderBy: { startedAt: "desc" },
+    });
+    checks.recentJobs = recentJobs.map((j) => ({
+      id: j.id,
+      type: j.jobType,
+      status: j.status,
+      startedAt: j.startedAt.toISOString(),
+      error: j.errorMessage,
+    }));
+  } catch (e) {
+    checks.recentJobs = {
       error: e instanceof Error ? e.message : String(e),
     };
   }
