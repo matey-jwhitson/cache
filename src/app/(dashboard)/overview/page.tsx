@@ -296,50 +296,72 @@ export default async function OverviewPage() {
             No audit results yet — run an audit to see responses
           </div>
         ) : (
-          <div className="space-y-3">
-            {samplePrompts.map((result) => {
-              const intent = intentMap.get(result.promptId);
-              const meta = result.meta as Record<string, unknown> | null;
-              return (
-                <div
-                  key={result.id}
-                  className="rounded-xl border border-zinc-800 bg-zinc-900"
-                >
-                  <div className="flex items-start gap-3 px-4 py-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="secondary">{result.provider}</Badge>
-                        <Badge
-                          variant={
-                            result.mentioned ? "success" : "destructive"
-                          }
-                        >
-                          {result.mentioned ? "Mentioned" : "Not Mentioned"}
-                        </Badge>
-                        {result.mentionRank != null && (
-                          <Badge variant="outline">
-                            Rank #{result.mentionRank}
+          <>
+            {!samplePrompts.some((r) => intentMap.has(r.promptId)) && (
+              <div className="mb-3 rounded-lg border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-xs text-amber-300">
+                These results are from a previous audit that used placeholder
+                prompts. Run a new audit from the{" "}
+                <Link href="/" className="font-medium underline">
+                  Control Panel
+                </Link>{" "}
+                to see results with real questions.
+              </div>
+            )}
+            <div className="space-y-3">
+              {samplePrompts.map((result) => {
+                const intent = intentMap.get(result.promptId);
+                const meta = result.meta as Record<string, unknown> | null;
+                return (
+                  <div
+                    key={result.id}
+                    className="rounded-xl border border-zinc-800 bg-zinc-900"
+                  >
+                    <div className="flex items-start gap-3 px-4 py-3">
+                      <div className="flex-1 space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="secondary">
+                            {result.provider}
                           </Badge>
-                        )}
-                        <span className="text-xs text-zinc-500">
-                          Similarity: {(result.similarity * 100).toFixed(1)}%
-                        </span>
-                        {typeof meta?.intent === "string" && (
-                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500">
-                            {meta.intent}
+                          <Badge
+                            variant={
+                              result.mentioned ? "success" : "destructive"
+                            }
+                          >
+                            {result.mentioned
+                              ? "Mentioned"
+                              : "Not Mentioned"}
+                          </Badge>
+                          {result.mentionRank != null && (
+                            <Badge variant="outline">
+                              Rank #{result.mentionRank}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-zinc-500">
+                            Similarity:{" "}
+                            {(result.similarity * 100).toFixed(1)}%
                           </span>
-                        )}
-                      </div>
-                      {intent && (
-                        <div className="rounded-lg bg-blue-500/5 px-3 py-2">
-                          <p className="text-xs font-medium text-blue-300">
-                            Prompt:
-                          </p>
-                          <p className="mt-0.5 text-sm text-zinc-300">
-                            {intent.text}
-                          </p>
+                          {typeof meta?.intent === "string" && (
+                            <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500">
+                              {meta.intent}
+                            </span>
+                          )}
                         </div>
-                      )}
+                        {intent ? (
+                          <div className="rounded-lg bg-blue-500/5 px-3 py-2">
+                            <p className="text-xs font-medium text-blue-300">
+                              Prompt:
+                            </p>
+                            <p className="mt-0.5 text-sm text-zinc-300">
+                              {intent.text}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
+                            <p className="text-xs italic text-zinc-500">
+                              Prompt from previous audit — run a new audit to see updated questions
+                            </p>
+                          </div>
+                        )}
                       <div className="rounded-lg bg-zinc-950 px-3 py-2">
                         <p className="text-xs font-medium text-zinc-500">
                           Response (excerpt):
@@ -352,8 +374,9 @@ export default async function OverviewPage() {
                   </div>
                 </div>
               );
-            })}
-          </div>
+              })}
+            </div>
+          </>
         )}
       </div>
 

@@ -131,25 +131,34 @@ export function IntentExplorer({ results, providers }: IntentExplorerProps) {
                   </div>
                 </button>
 
-                {/* Always show prompt text in collapsed view */}
-                {r.promptText && !isOpen && (
+                {!isOpen && (
                   <div className="flex items-start gap-2 border-t border-zinc-800/50 px-4 py-2">
                     <MessageSquare className="mt-0.5 h-3 w-3 shrink-0 text-blue-400/60" />
                     <p className="line-clamp-1 text-xs text-zinc-500">
-                      {r.promptText}
+                      {r.promptText ?? (
+                        <span className="italic">
+                          Previous audit — run a new audit to see updated prompts
+                        </span>
+                      )}
                     </p>
                   </div>
                 )}
 
                 {isOpen && (
                   <div className="space-y-3 border-t border-zinc-800 px-4 py-3">
-                    {r.promptText && (
+                    {r.promptText ? (
                       <div className="rounded-lg bg-blue-500/5 px-3 py-2">
                         <p className="text-xs font-medium text-blue-300">
                           Prompt sent to {r.provider}:
                         </p>
                         <p className="mt-1 text-sm text-zinc-300">
                           {r.promptText}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-lg bg-zinc-800/50 px-3 py-2">
+                        <p className="text-xs italic text-zinc-500">
+                          Prompt from previous audit — run a new audit to see updated questions
                         </p>
                       </div>
                     )}
