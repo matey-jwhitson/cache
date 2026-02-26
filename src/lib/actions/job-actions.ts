@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 
-const STALE_JOB_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+const STALE_JOB_THRESHOLD_MS = 60 * 60 * 1000; // 60 minutes
 
 export interface SerializedJob {
   id: string;

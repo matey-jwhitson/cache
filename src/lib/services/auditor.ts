@@ -122,61 +122,65 @@ async function auditSinglePrompt(
   return true;
 }
 
+export async function runAuditForProvider(
+  providerName: string,
+  options: AuditOptions = {},
+): Promise<{ runId: string; successful: number; failed: number }> {
+  const provider = getProvider(providerName);
+  const prompts = await loadIntents(options);
+  const maxConcurrent = options.maxConcurrent ?? 5;
+
+  const run = await db.auditRun.create({
+    data: {
+      provider: providerName,
+      model: options.modelOverride ?? provider.defaultModel,
+      totalPrompts: prompts.length,
+    },
+  });
+
+  let successful = 0;
+  let failed = 0;
+
+  const chunks: AuditPrompt[][] = [];
+  for (let i = 0; i < prompts.length; i += maxConcurrent) {
+    chunks.push(prompts.slice(i, i + maxConcurrent));
+  }
+
+  for (const chunk of chunks) {
+    const settled = await Promise.allSettled(
+      chunk.map((p) =>
+        auditSinglePrompt(provider, p, run.id, options.modelOverride),
+      ),
+    );
+    for (const r of settled) {
+      if (r.status === "fulfilled" && r.value) successful++;
+      else failed++;
+    }
+  }
+
+  await db.auditRun.update({
+    where: { id: run.id },
+    data: {
+      completedAt: new Date(),
+      successful,
+      failed,
+    },
+  });
+
+  return { runId: run.id, successful, failed };
+}
+
 export async function runAudit(
   providerNames: string[],
   options: AuditOptions = {},
 ): Promise<Record<string, { runId: string; successful: number; failed: number }>> {
-  const prompts = await loadIntents(options);
-  const maxConcurrent = options.maxConcurrent ?? 5;
   const results: Record<string, { runId: string; successful: number; failed: number }> = {};
-
   for (const name of providerNames) {
-    let provider: Provider;
     try {
-      provider = getProvider(name);
+      results[name] = await runAuditForProvider(name, options);
     } catch {
-      continue;
+      // provider unavailable or failed entirely — skip
     }
-
-    const run = await db.auditRun.create({
-      data: {
-        provider: name,
-        model: options.modelOverride ?? provider.defaultModel,
-        totalPrompts: prompts.length,
-      },
-    });
-
-    let successful = 0;
-    let failed = 0;
-
-    const chunks: AuditPrompt[][] = [];
-    for (let i = 0; i < prompts.length; i += maxConcurrent) {
-      chunks.push(prompts.slice(i, i + maxConcurrent));
-    }
-
-    for (const chunk of chunks) {
-      const settled = await Promise.allSettled(
-        chunk.map((p) =>
-          auditSinglePrompt(provider, p, run.id, options.modelOverride),
-        ),
-      );
-      for (const r of settled) {
-        if (r.status === "fulfilled" && r.value) successful++;
-        else failed++;
-      }
-    }
-
-    await db.auditRun.update({
-      where: { id: run.id },
-      data: {
-        completedAt: new Date(),
-        successful,
-        failed,
-      },
-    });
-
-    results[name] = { runId: run.id, successful, failed };
   }
-
   return results;
 }
