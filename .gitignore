@@ -39,6 +39,9 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# scripts with secrets
+scripts/set-env.mjs
+
 # vercel
 .vercel
 

@@ -7,21 +7,22 @@ import { notifyJobCompleted } from "@/lib/services/notifications";
 export const dailyAudit = inngest.createFunction(
   { id: "daily-audit", name: "Daily Audit" },
   [{ cron: "0 9 * * *" }, { event: "cache/audit.requested" }],
-  async () => {
+  async ({ event }) => {
     const startedAt = Date.now();
-
     const providerNames = getAvailableProviders().map((p) => p.name);
 
-    const jobRun = await db.jobRun.create({
-      data: { jobType: "audit", status: "running", triggeredBy: "inngest" },
-    });
+    const existingJobId = event?.data?.jobRunId as string | undefined;
 
-    let success = false;
+    const jobRun = existingJobId
+      ? await db.jobRun.findUniqueOrThrow({ where: { id: existingJobId } })
+      : await db.jobRun.create({
+          data: { jobType: "audit", status: "running", triggeredBy: "scheduled" },
+        });
+
     try {
       const results = await runAudit(providerNames);
-      success = true;
-
       const durationSeconds = (Date.now() - startedAt) / 1000;
+
       await db.jobRun.update({
         where: { id: jobRun.id },
         data: {
@@ -67,10 +68,6 @@ export const dailyAudit = inngest.createFunction(
       });
 
       throw error;
-    } finally {
-      if (!success) {
-        /* error path already handled above */
-      }
     }
   },
 );

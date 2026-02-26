@@ -1,12 +1,23 @@
 import { db } from "@/lib/db";
-import { Badge } from "@/components/ui/badge";
 import { ControlPanelActions } from "./control-panel-actions";
+import type { SerializedJob } from "@/lib/actions/job-actions";
 
 export default async function ControlPanelPage() {
   const jobs = await db.jobRun.findMany({
     orderBy: { startedAt: "desc" },
     take: 20,
   });
+
+  const serializedJobs: SerializedJob[] = jobs.map((job) => ({
+    id: job.id,
+    jobType: job.jobType,
+    status: job.status,
+    triggeredBy: job.triggeredBy,
+    startedAt: job.startedAt.toISOString(),
+    completedAt: job.completedAt?.toISOString() ?? null,
+    durationSeconds: job.durationSeconds,
+    errorMessage: job.errorMessage,
+  }));
 
   const gapAnalysis = await db.auditResult.findMany({
     where: { mentioned: false },
@@ -23,59 +34,7 @@ export default async function ControlPanelPage() {
         </p>
       </div>
 
-      <ControlPanelActions />
-
-      <div>
-        <h2 className="mb-4 text-lg font-semibold text-white">
-          Job History
-        </h2>
-        {jobs.length === 0 ? (
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center text-sm text-zinc-500">
-            No jobs have been run yet
-          </div>
-        ) : (
-          <div className="overflow-x-auto rounded-xl border border-zinc-800">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800 bg-zinc-900/80">
-                  <th className="px-4 py-3 text-left font-medium text-zinc-400">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-400">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-400">Triggered By</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-400">Started</th>
-                  <th className="px-4 py-3 text-left font-medium text-zinc-400">Duration</th>
-                </tr>
-              </thead>
-              <tbody className="bg-zinc-900">
-                {jobs.map((job) => (
-                  <tr key={job.id} className="border-b border-zinc-800/50 last:border-0">
-                    <td className="px-4 py-3 font-medium text-white">{job.jobType}</td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        variant={
-                          job.status === "completed"
-                            ? "success"
-                            : job.status === "failed"
-                              ? "destructive"
-                              : "default"
-                        }
-                      >
-                        {job.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-zinc-300">{job.triggeredBy ?? "—"}</td>
-                    <td className="px-4 py-3 text-zinc-300">
-                      {job.startedAt.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 text-zinc-300">
-                      {job.durationSeconds != null ? `${job.durationSeconds.toFixed(1)}s` : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <ControlPanelActions initialJobs={serializedJobs} />
 
       <div>
         <h2 className="mb-4 text-lg font-semibold text-white">

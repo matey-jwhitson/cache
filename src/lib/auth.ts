@@ -15,10 +15,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
   ],
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
+    error: "/login",
   },
+  debug: process.env.NODE_ENV !== "production",
+  trustHost: true,
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

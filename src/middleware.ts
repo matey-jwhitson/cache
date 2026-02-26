@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const publicPaths = ["/login", "/api/auth", "/api/webhook"];
+const publicPaths = ["/login", "/api/auth", "/api/webhook", "/api/debug"];
 
 const mutationMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
@@ -34,7 +34,11 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+    secureCookie: true,
+  });
 
   if (!token) {
     if (pathname.startsWith("/api/")) {

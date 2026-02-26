@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { MetricCard } from "@/components/dashboard/metric-card";
+import { LocalTime } from "@/components/ui/local-time";
 import { CostCharts } from "./cost-charts";
 
 export default async function CostPage() {
@@ -102,7 +103,7 @@ export default async function CostPage() {
                     <td className="px-4 py-3 text-right text-zinc-300">{c.tokensIn.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right text-zinc-300">{c.tokensOut.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right font-mono text-zinc-200">${c.costUsd.toFixed(6)}</td>
-                    <td className="px-4 py-3 text-zinc-400">{c.timestamp.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-zinc-400"><LocalTime date={c.timestamp.toISOString()} /></td>
                   </tr>
                 ))}
               </tbody>

@@ -2,40 +2,70 @@
 
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
-import { inngest } from "@/inngest/client";
 
-export async function triggerAudit() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+const STALE_JOB_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
 
-  await inngest.send({ name: "cache/audit.requested", data: {} });
-  return { triggered: true, job: "audit" };
+export interface SerializedJob {
+  id: string;
+  jobType: string;
+  status: string;
+  triggeredBy: string | null;
+  startedAt: string;
+  completedAt: string | null;
+  durationSeconds: number | null;
+  errorMessage: string | null;
 }
 
-export async function triggerReinforcement() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
-
-  await inngest.send({ name: "cache/reinforce.requested", data: {} });
-  return { triggered: true, job: "reinforcement" };
+function serializeJob(job: {
+  id: string;
+  jobType: string;
+  status: string;
+  triggeredBy: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  durationSeconds: number | null;
+  errorMessage: string | null;
+}): SerializedJob {
+  return {
+    id: job.id,
+    jobType: job.jobType,
+    status: job.status,
+    triggeredBy: job.triggeredBy,
+    startedAt: job.startedAt.toISOString(),
+    completedAt: job.completedAt?.toISOString() ?? null,
+    durationSeconds: job.durationSeconds,
+    errorMessage: job.errorMessage,
+  };
 }
 
-export async function triggerContentBuild() {
-  const session = await auth();
-  if (!session?.user) throw new Error("Unauthorized");
+async function cleanupStaleJobs() {
+  const cutoff = new Date(Date.now() - STALE_JOB_THRESHOLD_MS);
 
-  await inngest.send({ name: "cache/content.build.requested", data: {} });
-  return { triggered: true, job: "content_build" };
+  await db.jobRun.updateMany({
+    where: {
+      status: "running",
+      startedAt: { lt: cutoff },
+    },
+    data: {
+      status: "failed",
+      completedAt: new Date(),
+      errorMessage: "Job timed out — no completion signal received",
+    },
+  });
 }
 
-export async function getJobHistory(limit?: number) {
+export async function getJobHistory(limit?: number): Promise<SerializedJob[]> {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
+
+  await cleanupStaleJobs();
 
   const take = Math.min(Math.max(limit ?? 50, 1), 200);
 
-  return db.jobRun.findMany({
+  const jobs = await db.jobRun.findMany({
     take,
     orderBy: { startedAt: "desc" },
   });
+
+  return jobs.map(serializeJob);
 }

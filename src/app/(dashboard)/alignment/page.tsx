@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { LocalTime } from "@/components/ui/local-time";
 import { cn } from "@/lib/utils";
 
 export default async function AlignmentPage() {
@@ -144,9 +145,10 @@ export default async function AlignmentPage() {
                     <span className="text-sm text-zinc-300">
                       {log.provider} — forbidden terms: {hits.join(", ")}
                     </span>
-                    <span className="ml-auto text-xs text-zinc-500">
-                      {log.createdAt.toLocaleString()}
-                    </span>
+                    <LocalTime
+                      date={log.createdAt.toISOString()}
+                      className="ml-auto text-xs text-zinc-500"
+                    />
                   </div>
                 );
               })}
