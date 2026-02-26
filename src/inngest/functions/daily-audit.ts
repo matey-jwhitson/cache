@@ -9,8 +9,15 @@ export const dailyAudit = inngest.createFunction(
   [{ cron: "0 9 * * *" }, { event: "cache/audit.requested" }],
   async ({ event }) => {
     const startedAt = Date.now();
-    const providerNames = getAvailableProviders().map((p) => p.name);
+    const providers = getAvailableProviders();
 
+    if (providers.length === 0) {
+      throw new Error(
+        "No LLM providers configured. Set at least one API key (OPENAI_API_KEY, ANTHROPIC_API_KEY, etc.) in your Vercel environment variables.",
+      );
+    }
+
+    const providerNames = providers.map((p) => p.name);
     const existingJobId = event?.data?.jobRunId as string | undefined;
 
     const jobRun = existingJobId

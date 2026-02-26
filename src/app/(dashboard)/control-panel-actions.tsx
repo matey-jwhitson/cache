@@ -241,6 +241,11 @@ export function ControlPanelActions({
                           {job.status}
                         </Badge>
                         {job.status === "running" && <IndeterminateBar />}
+                        {job.status === "failed" && job.errorMessage && (
+                          <span className="text-xs text-red-400/80">
+                            {job.errorMessage}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-zinc-300">

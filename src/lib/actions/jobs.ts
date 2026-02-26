@@ -4,73 +4,71 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { inngest } from "@/inngest/client";
 
-async function dispatchOrFail(
-  jobId: string,
+function requireInngest() {
+  if (!process.env.INNGEST_EVENT_KEY) {
+    throw new Error(
+      "INNGEST_EVENT_KEY is not configured. Add it to your Vercel environment variables.",
+    );
+  }
+}
+
+async function createAndDispatch(
+  jobType: string,
   eventName: string,
+  triggeredBy: string,
 ) {
+  const job = await db.jobRun.create({
+    data: { jobType, status: "running", triggeredBy },
+  });
+
   try {
+    requireInngest();
     await inngest.send({
       name: eventName,
-      data: { jobRunId: jobId },
+      data: { jobRunId: job.id },
     });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to dispatch job";
 
     await db.jobRun.update({
-      where: { id: jobId },
+      where: { id: job.id },
       data: {
         status: "failed",
         completedAt: new Date(),
-        errorMessage: `Dispatch failed: ${message}`,
+        errorMessage: message,
       },
     });
 
-    throw new Error(`Job dispatch failed: ${message}`);
+    throw new Error(message);
   }
+
+  return { jobId: job.id, status: "started" };
 }
 
 export async function triggerAudit() {
   const user = await requireAuth();
-
-  const job = await db.jobRun.create({
-    data: {
-      jobType: "audit",
-      status: "running",
-      triggeredBy: user.email ?? "unknown",
-    },
-  });
-
-  await dispatchOrFail(job.id, "cache/audit.requested");
-  return { jobId: job.id, status: "started" };
+  return createAndDispatch(
+    "audit",
+    "cache/audit.requested",
+    user.email ?? "unknown",
+  );
 }
 
 export async function triggerReinforcement() {
   const user = await requireAuth();
-
-  const job = await db.jobRun.create({
-    data: {
-      jobType: "reinforcement",
-      status: "running",
-      triggeredBy: user.email ?? "unknown",
-    },
-  });
-
-  await dispatchOrFail(job.id, "cache/reinforce.requested");
-  return { jobId: job.id, status: "started" };
+  return createAndDispatch(
+    "reinforcement",
+    "cache/reinforce.requested",
+    user.email ?? "unknown",
+  );
 }
 
 export async function triggerContentBuild() {
   const user = await requireAuth();
-
-  const job = await db.jobRun.create({
-    data: {
-      jobType: "content_build",
-      status: "running",
-      triggeredBy: user.email ?? "unknown",
-    },
-  });
-
-  await dispatchOrFail(job.id, "cache/content.build.requested");
-  return { jobId: job.id, status: "started" };
+  return createAndDispatch(
+    "content_build",
+    "cache/content.build.requested",
+    user.email ?? "unknown",
+  );
 }
