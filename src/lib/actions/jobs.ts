@@ -16,7 +16,7 @@ async function createAndDispatch(
   jobType: string,
   eventName: string,
   triggeredBy: string,
-) {
+): Promise<{ jobId: string; status: string; error?: string }> {
   const job = await db.jobRun.create({
     data: { jobType, status: "running", triggeredBy },
   });
@@ -40,7 +40,7 @@ async function createAndDispatch(
       },
     });
 
-    throw new Error(message);
+    return { jobId: job.id, status: "failed", error: message };
   }
 
   return { jobId: job.id, status: "started" };

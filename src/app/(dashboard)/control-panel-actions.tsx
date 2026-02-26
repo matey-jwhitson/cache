@@ -108,16 +108,21 @@ export function ControlPanelActions({
   }, [hasRunningJob, refreshJobs]);
 
   function run(
-    action: () => Promise<{ jobId: string; status: string }>,
+    action: () => Promise<{ jobId: string; status: string; error?: string }>,
     label: string,
   ) {
     startTransition(async () => {
       try {
-        await action();
-        addToast(`${label} started successfully`, "success");
+        const result = await action();
+        if (result.error) {
+          addToast(`${label} failed: ${result.error}`, "error");
+        } else {
+          addToast(`${label} started successfully`, "success");
+        }
         await refreshJobs();
       } catch {
         addToast(`Failed to start ${label}`, "error");
+        await refreshJobs();
       }
     });
   }
