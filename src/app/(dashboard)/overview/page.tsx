@@ -309,9 +309,9 @@ export default async function OverviewPage() {
                         <span className="text-xs text-zinc-500">
                           Similarity: {(result.similarity * 100).toFixed(1)}%
                         </span>
-                        {meta?.intent && (
+                        {typeof meta?.intent === "string" && (
                           <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-500">
-                            {meta.intent as string}
+                            {meta.intent}
                           </span>
                         )}
                       </div>
