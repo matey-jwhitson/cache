@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LocalTime } from "@/components/ui/local-time";
@@ -78,7 +78,7 @@ export function ControlPanelActions({
 }: {
   initialJobs: SerializedJob[];
 }) {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [jobs, setJobs] = useState(initialJobs);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
@@ -107,24 +107,25 @@ export function ControlPanelActions({
     return () => clearInterval(id);
   }, [hasRunningJob, refreshJobs]);
 
-  function run(
+  async function run(
     action: () => Promise<{ jobId: string; status: string; error?: string }>,
     label: string,
   ) {
-    startTransition(async () => {
-      try {
-        const result = await action();
-        if (result.error) {
-          addToast(`${label} failed: ${result.error}`, "error");
-        } else {
-          addToast(`${label} started successfully`, "success");
-        }
-        await refreshJobs();
-      } catch {
-        addToast(`Failed to start ${label}`, "error");
-        await refreshJobs();
+    setIsPending(true);
+    try {
+      const result = await action();
+      if (result.error) {
+        addToast(`${label} failed: ${result.error}`, "error");
+      } else {
+        addToast(`${label} started successfully`, "success");
       }
-    });
+      await refreshJobs();
+    } catch {
+      addToast(`Failed to start ${label}`, "error");
+      await refreshJobs();
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
