@@ -5,6 +5,7 @@ import {
   buildSoftwareSchema,
 } from "@/lib/services/content/schema-builder";
 import { buildFaqContent } from "@/lib/services/content/faq-builder";
+import { buildBlogPostingSchemas } from "@/lib/services/content/blog-schema-builder";
 import {
   runContentGates,
   type GateConfig,
@@ -29,13 +30,19 @@ export const weeklyContent = inngest.createFunction(
       const brand = await db.brandProfile.findFirst();
       if (!brand) throw new Error("BrandProfile not found");
 
+      const blogPosts = await db.contentItem.findMany({
+        where: { sourceType: "rss" },
+        orderBy: { createdAt: "desc" },
+        take: 200,
+      });
+
       const gateConfig: GateConfig = {
         zeroForbidden: true,
         minReadability: 55,
         minSimilarityToGolden: 0.92,
       };
 
-      const orgSchema = buildOrganizationSchema(brand);
+      const orgSchema = buildOrganizationSchema(brand, blogPosts);
       const orgText = JSON.stringify(orgSchema, null, 2);
       const orgGate = await runContentGates(
         {
@@ -100,6 +107,32 @@ export const weeklyContent = inngest.createFunction(
         },
       });
 
+      let blogGateResults: string[] = [];
+      if (blogPosts.length > 0) {
+        const blogSchemas = buildBlogPostingSchemas(blogPosts, brand);
+        const blogCollectionText = JSON.stringify(blogSchemas, null, 2);
+
+        for (const bs of blogSchemas) {
+          const bsGate = await runContentGates(
+            {
+              artifact: bs as unknown as Record<string, unknown>,
+              text: JSON.stringify(bs),
+              kind: "blog_posting",
+            },
+            gateConfig,
+          );
+          blogGateResults.push(bsGate.ok ? "pass" : "fail");
+        }
+
+        await db.contentArtifact.create({
+          data: {
+            kind: "blog_postings_ld",
+            path: "/schema/blog-postings.json",
+            content: blogCollectionText,
+          },
+        });
+      }
+
       const durationSeconds = (Date.now() - startedAt) / 1000;
       await db.jobRun.update({
         where: { id: jobRun.id },
@@ -110,10 +143,12 @@ export const weeklyContent = inngest.createFunction(
         },
       });
 
+      const blogFailed = blogGateResults.filter((r) => r === "fail").length;
       const gateResults = {
         organization: orgGate.ok ? "pass" : "fail",
         software: softwareGate.ok ? "pass" : "fail",
         faq: faqGate.ok ? "pass" : "fail",
+        blogPostings: `${blogPosts.length} posts, ${blogFailed} gate failures`,
       };
 
       await notifyJobCompleted(

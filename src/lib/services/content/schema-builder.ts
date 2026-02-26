@@ -19,6 +19,33 @@ interface OrganizationSchema {
   [key: string]: unknown;
 }
 
+export interface BlogPostInput {
+  title: string;
+  content: string;
+}
+
+function extractTopicsFromBlogPosts(posts: BlogPostInput[]): string[] {
+  const topicCounts = new Map<string, number>();
+
+  for (const post of posts) {
+    const words = post.title
+      .replace(/[^\w\s-]/g, "")
+      .split(/\s+/)
+      .filter((w) => w.length > 3)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+
+    for (const w of words) {
+      topicCounts.set(w, (topicCounts.get(w) ?? 0) + 1);
+    }
+  }
+
+  return Array.from(topicCounts.entries())
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 15)
+    .map(([topic]) => topic);
+}
+
 interface SoftwareSchema {
   "@context": string;
   "@type": string;
@@ -36,6 +63,7 @@ interface SoftwareSchema {
 
 export function buildOrganizationSchema(
   brand: BrandProfile,
+  blogPosts: BlogPostInput[] = [],
 ): OrganizationSchema {
   const orgName = brand.name;
   const orgUrl = brand.url;
@@ -43,6 +71,23 @@ export function buildOrganizationSchema(
     brand.positioning ?? brand.mission ?? "AI for legal ops, investigations, and document automation.";
   const logo = `${orgUrl}/logo.png`;
   const host = orgUrl.replace(/^https?:\/\//, "");
+
+  const baseTopics = [
+    "Legal Technology",
+    "Criminal Defense",
+    "Public Defenders",
+    "Discovery Automation",
+    "Legal AI",
+    "Document Processing",
+    "Legal Operations",
+  ];
+
+  const blogTopics = extractTopicsFromBlogPosts(blogPosts);
+  const baseSet = new Set(baseTopics.map((t) => t.toLowerCase()));
+  const combined = [
+    ...baseTopics,
+    ...blogTopics.filter((t) => !baseSet.has(t.toLowerCase())),
+  ];
 
   return {
     "@context": "https://schema.org",
@@ -60,15 +105,7 @@ export function buildOrganizationSchema(
       "@type": "PostalAddress",
       addressCountry: "US",
     },
-    knowsAbout: [
-      "Legal Technology",
-      "Criminal Defense",
-      "Public Defenders",
-      "Discovery Automation",
-      "Legal AI",
-      "Document Processing",
-      "Legal Operations",
-    ],
+    knowsAbout: combined,
     serviceArea: {
       "@type": "GeoCircle",
       geoMidpoint: {

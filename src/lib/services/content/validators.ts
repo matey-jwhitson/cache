@@ -71,6 +71,12 @@ export function validateJsonLdStructure(
     if (!("mainEntity" in artifact)) errors.push("Missing mainEntity field");
     else if (!Array.isArray(artifact.mainEntity))
       errors.push("mainEntity must be a list");
+  } else if (kind === "blog_posting") {
+    if (artifact["@type"] !== "BlogPosting")
+      errors.push(`Expected @type 'BlogPosting', got '${artifact["@type"]}'`);
+    for (const f of ["headline", "author", "publisher"]) {
+      if (!(f in artifact)) errors.push(`Missing required field: ${f}`);
+    }
   }
 
   return errors;
