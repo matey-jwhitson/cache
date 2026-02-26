@@ -1,12 +1,20 @@
 import { db } from "@/lib/db";
 import { ControlPanelActions } from "./control-panel-actions";
-import type { SerializedJob } from "@/lib/actions/job-actions";
+import {
+  getLatestAuditSummary,
+  type SerializedJob,
+} from "@/lib/actions/job-actions";
 
 export default async function ControlPanelPage() {
-  const jobs = await db.jobRun.findMany({
-    orderBy: { startedAt: "desc" },
-    take: 20,
-  });
+  const [jobs, auditSummary, gapAnalysis] = await Promise.all([
+    db.jobRun.findMany({ orderBy: { startedAt: "desc" }, take: 20 }),
+    getLatestAuditSummary().catch(() => null),
+    db.auditResult.findMany({
+      where: { mentioned: false },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    }),
+  ]);
 
   const serializedJobs: SerializedJob[] = jobs.map((job) => ({
     id: job.id,
@@ -19,12 +27,6 @@ export default async function ControlPanelPage() {
     errorMessage: job.errorMessage,
   }));
 
-  const gapAnalysis = await db.auditResult.findMany({
-    where: { mentioned: false },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-  });
-
   return (
     <div className="space-y-8">
       <div>
@@ -34,7 +36,7 @@ export default async function ControlPanelPage() {
         </p>
       </div>
 
-      <ControlPanelActions initialJobs={serializedJobs} />
+      <ControlPanelActions initialJobs={serializedJobs} initialSummary={auditSummary} />
 
       <div>
         <h2 className="mb-4 text-lg font-semibold text-white">

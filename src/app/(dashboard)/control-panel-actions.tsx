@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LocalTime } from "@/components/ui/local-time";
@@ -11,9 +12,22 @@ import {
 } from "@/lib/actions/jobs";
 import {
   getJobHistory,
+  getLatestAuditSummary,
   type SerializedJob,
+  type AuditSummary,
 } from "@/lib/actions/job-actions";
-import { Radar, Repeat, FileCode, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import {
+  Radar,
+  Repeat,
+  FileCode,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  ArrowRight,
+  BarChart3,
+  Search,
+  Grid3X3,
+} from "lucide-react";
 
 function jobStatusVariant(status: string) {
   switch (status) {
@@ -73,39 +87,190 @@ interface Toast {
   type: "success" | "error";
 }
 
+function AuditResultsSummary({ summary }: { summary: AuditSummary }) {
+  const { totals, providers } = summary;
+  return (
+    <div className="space-y-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-white">
+            Latest Audit Results
+          </h3>
+          <p className="mt-0.5 text-xs text-zinc-500">
+            Ran <LocalTime date={summary.ranAt} />
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href="/overview"
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+          >
+            <BarChart3 className="h-3 w-3" /> Overview
+          </Link>
+          <Link
+            href="/intents"
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+          >
+            <Search className="h-3 w-3" /> Intents
+          </Link>
+          <Link
+            href="/alignment"
+            className="flex items-center gap-1.5 rounded-lg bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-700 hover:text-white"
+          >
+            <Grid3X3 className="h-3 w-3" /> Alignment
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-4 gap-3">
+        <div className="rounded-lg bg-zinc-800/60 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Total Prompts</p>
+          <p className="mt-1 text-lg font-bold text-white">
+            {totals.prompts.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-800/60 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Mention Rate</p>
+          <p className="mt-1 text-lg font-bold text-white">
+            {(totals.mentionRate * 100).toFixed(1)}%
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-800/60 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Avg Similarity</p>
+          <p className="mt-1 text-lg font-bold text-white">
+            {(totals.avgSimilarity * 100).toFixed(1)}%
+          </p>
+        </div>
+        <div className="rounded-lg bg-zinc-800/60 px-3 py-2.5">
+          <p className="text-xs text-zinc-500">Avg Mention Rank</p>
+          <p className="mt-1 text-lg font-bold text-white">
+            {totals.avgRank > 0 ? `#${totals.avgRank.toFixed(1)}` : "—"}
+          </p>
+        </div>
+      </div>
+
+      {providers.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-zinc-800">
+                <th className="px-3 py-2 text-left font-medium text-zinc-500">
+                  Provider
+                </th>
+                <th className="px-3 py-2 text-left font-medium text-zinc-500">
+                  Model
+                </th>
+                <th className="px-3 py-2 text-right font-medium text-zinc-500">
+                  Prompts
+                </th>
+                <th className="px-3 py-2 text-right font-medium text-zinc-500">
+                  Mention Rate
+                </th>
+                <th className="px-3 py-2 text-right font-medium text-zinc-500">
+                  Similarity
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {providers.map((p) => (
+                <tr
+                  key={p.name}
+                  className="border-b border-zinc-800/30 last:border-0"
+                >
+                  <td className="px-3 py-2 font-medium text-white">
+                    {p.name}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-zinc-400">
+                    {p.model}
+                  </td>
+                  <td className="px-3 py-2 text-right text-zinc-300">
+                    {p.successful}/{p.totalPrompts}
+                  </td>
+                  <td className="px-3 py-2 text-right text-zinc-300">
+                    {(p.mentionRate * 100).toFixed(1)}%
+                  </td>
+                  <td className="px-3 py-2 text-right text-zinc-300">
+                    {(p.avgSimilarity * 100).toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ControlPanelActions({
   initialJobs,
+  initialSummary,
 }: {
   initialJobs: SerializedJob[];
+  initialSummary: AuditSummary | null;
 }) {
   const [isPending, setIsPending] = useState(false);
   const [jobs, setJobs] = useState(initialJobs);
+  const [summary, setSummary] = useState(initialSummary);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const prevJobsRef = useRef(initialJobs);
 
   const hasRunningJob = jobs.some((j) => j.status === "running");
 
-  const addToast = useCallback((message: string, type: "success" | "error") => {
-    const id = Date.now();
-    setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 5000);
-  }, []);
+  const addToast = useCallback(
+    (message: string, type: "success" | "error") => {
+      const id = Date.now();
+      setToasts((prev) => [...prev, { id, message, type }]);
+      setTimeout(() => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      }, 6000);
+    },
+    [],
+  );
 
-  const refreshJobs = useCallback(async () => {
+  const refreshData = useCallback(async () => {
     try {
-      const fresh = await getJobHistory(20);
-      setJobs(fresh);
+      const [freshJobs, freshSummary] = await Promise.all([
+        getJobHistory(20),
+        getLatestAuditSummary(),
+      ]);
+
+      const prevRunning = prevJobsRef.current.filter(
+        (j) => j.status === "running",
+      );
+      for (const prev of prevRunning) {
+        const now = freshJobs.find((j) => j.id === prev.id);
+        if (now && now.status === "success" && now.jobType === "audit") {
+          const provCount = freshSummary?.providers.length ?? 0;
+          const prompts = freshSummary?.totals.prompts ?? 0;
+          const rate = freshSummary
+            ? (freshSummary.totals.mentionRate * 100).toFixed(1)
+            : "0";
+          addToast(
+            `Audit complete — ${prompts} prompts across ${provCount} providers, ${rate}% mention rate`,
+            "success",
+          );
+        } else if (now && now.status === "failed") {
+          addToast(
+            `${now.jobType} failed: ${now.errorMessage ?? "unknown error"}`,
+            "error",
+          );
+        }
+      }
+
+      prevJobsRef.current = freshJobs;
+      setJobs(freshJobs);
+      setSummary(freshSummary);
     } catch {
       /* polling failure is non-fatal */
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     if (!hasRunningJob) return;
-    const id = setInterval(refreshJobs, 8000);
+    const id = setInterval(refreshData, 8000);
     return () => clearInterval(id);
-  }, [hasRunningJob, refreshJobs]);
+  }, [hasRunningJob, refreshData]);
 
   async function run(
     action: () => Promise<{ jobId: string; status: string; error?: string }>,
@@ -119,10 +284,10 @@ export function ControlPanelActions({
       } else {
         addToast(`${label} started successfully`, "success");
       }
-      await refreshJobs();
+      await refreshData();
     } catch {
       addToast(`Failed to start ${label}`, "error");
-      await refreshJobs();
+      await refreshData();
     } finally {
       setIsPending(false);
     }
@@ -195,6 +360,9 @@ export function ControlPanelActions({
         </div>
       )}
 
+      {/* Latest Audit Results */}
+      {summary && <AuditResultsSummary summary={summary} />}
+
       {/* Job History */}
       <div>
         <div className="mb-4 flex items-center gap-3">
@@ -243,9 +411,21 @@ export function ControlPanelActions({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1.5">
-                        <Badge variant={jobStatusVariant(job.status)}>
-                          {job.status}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={jobStatusVariant(job.status)}>
+                            {job.status}
+                          </Badge>
+                          {job.status === "success" &&
+                            job.jobType === "audit" && (
+                              <Link
+                                href="/overview"
+                                className="flex items-center gap-1 text-xs font-medium text-blue-400 hover:text-blue-300"
+                              >
+                                View Results{" "}
+                                <ArrowRight className="h-3 w-3" />
+                              </Link>
+                            )}
+                        </div>
                         {job.status === "running" && <IndeterminateBar />}
                         {job.status === "failed" && job.errorMessage && (
                           <span className="text-xs text-red-400/80">
