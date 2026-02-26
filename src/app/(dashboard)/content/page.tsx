@@ -10,6 +10,7 @@ export default async function ContentPage() {
     organization: [],
     software: [],
     faq: [],
+    blog: [],
   };
 
   for (const a of artifacts) {
@@ -20,7 +21,8 @@ export default async function ContentPage() {
       content: a.content,
       createdAt: a.createdAt.toISOString(),
     };
-    if (kind.includes("org")) grouped.organization.push(serialized);
+    if (kind.includes("blog")) grouped.blog.push(serialized);
+    else if (kind.includes("org")) grouped.organization.push(serialized);
     else if (kind.includes("soft") || kind.includes("app")) grouped.software.push(serialized);
     else if (kind.includes("faq")) grouped.faq.push(serialized);
     else grouped.organization.push(serialized);

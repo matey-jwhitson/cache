@@ -18,6 +18,7 @@ const SECTION_LABELS: Record<string, string> = {
   organization: "Organization Schema",
   software: "Software Application Schema",
   faq: "FAQ Page Schema",
+  blog: "Blog Posting Schemas",
 };
 
 export function ContentSections({ grouped }: ContentSectionsProps) {
