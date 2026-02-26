@@ -178,7 +178,22 @@ export default async function OverviewPage() {
           <MetricCard
             label="Avg Similarity"
             value={`${(avgSimilarity * 100).toFixed(1)}%`}
-            detail="Semantic closeness to your brand description"
+            detail={
+              avgSimilarity >= 0.5
+                ? "LLMs are talking about your space — reinforce to close the gap"
+                : avgSimilarity >= 0.2
+                  ? "LLMs discuss related topics but don't connect them to your brand yet"
+                  : avgSimilarity > 0
+                    ? "Responses are far from your brand positioning"
+                    : "No data yet"
+            }
+            trend={
+              avgSimilarity >= 0.5
+                ? "up"
+                : avgSimilarity > 0
+                  ? "flat"
+                  : undefined
+            }
           />
           <MetricCard
             label="Avg Mention Rank"
@@ -263,10 +278,10 @@ export default async function OverviewPage() {
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-lg font-semibold text-white">
-              Sample Audit Results
+              Recent Audit Results
             </h2>
             <p className="mt-0.5 text-xs text-zinc-500">
-              What your audit actually asked and what the LLMs responded
+              Real prompts from your latest audit and how each LLM responded
             </p>
           </div>
           <Link
