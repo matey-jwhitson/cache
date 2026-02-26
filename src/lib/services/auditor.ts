@@ -12,7 +12,7 @@ export interface AuditOptions {
   maxConcurrent?: number;
 }
 
-interface AuditPrompt {
+export interface AuditPrompt {
   id: string;
   text: string;
   intentClass: string;
@@ -40,7 +40,7 @@ async function trackCost(
   });
 }
 
-async function loadIntents(opts: AuditOptions): Promise<AuditPrompt[]> {
+export async function loadIntents(opts: AuditOptions = {}): Promise<AuditPrompt[]> {
   let intents = await db.intentTaxonomy.findMany();
 
   if (opts.intentFilter) {
@@ -122,6 +122,30 @@ async function auditSinglePrompt(
   return true;
 }
 
+export async function auditPromptBatch(
+  providerName: string,
+  prompts: AuditPrompt[],
+  runId: string,
+  modelOverride?: string,
+): Promise<{ successful: number; failed: number }> {
+  const provider = getProvider(providerName);
+  let successful = 0;
+  let failed = 0;
+
+  const settled = await Promise.allSettled(
+    prompts.map((p) =>
+      auditSinglePrompt(provider, p, runId, modelOverride),
+    ),
+  );
+
+  for (const r of settled) {
+    if (r.status === "fulfilled" && r.value) successful++;
+    else failed++;
+  }
+
+  return { successful, failed };
+}
+
 export async function runAuditForProvider(
   providerName: string,
   options: AuditOptions = {},
@@ -147,15 +171,9 @@ export async function runAuditForProvider(
   }
 
   for (const chunk of chunks) {
-    const settled = await Promise.allSettled(
-      chunk.map((p) =>
-        auditSinglePrompt(provider, p, run.id, options.modelOverride),
-      ),
-    );
-    for (const r of settled) {
-      if (r.status === "fulfilled" && r.value) successful++;
-      else failed++;
-    }
+    const result = await auditPromptBatch(providerName, chunk, run.id, options.modelOverride);
+    successful += result.successful;
+    failed += result.failed;
   }
 
   await db.auditRun.update({
