@@ -54,6 +54,7 @@
     "eslint-config-next": "16.1.6",
     "msw": "^2.12.10",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }

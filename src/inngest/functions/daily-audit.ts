@@ -1,0 +1,76 @@
+import { inngest } from "@/inngest/client";
+import { db } from "@/lib/db";
+import { runAudit } from "@/lib/services/auditor";
+import { getAvailableProviders } from "@/lib/providers";
+import { notifyJobCompleted } from "@/lib/services/notifications";
+
+export const dailyAudit = inngest.createFunction(
+  { id: "daily-audit", name: "Daily Audit" },
+  [{ cron: "0 9 * * *" }, { event: "cache/audit.requested" }],
+  async () => {
+    const startedAt = Date.now();
+
+    const providerNames = getAvailableProviders().map((p) => p.name);
+
+    const jobRun = await db.jobRun.create({
+      data: { jobType: "audit", status: "running", triggeredBy: "inngest" },
+    });
+
+    let success = false;
+    try {
+      const results = await runAudit(providerNames);
+      success = true;
+
+      const durationSeconds = (Date.now() - startedAt) / 1000;
+      await db.jobRun.update({
+        where: { id: jobRun.id },
+        data: {
+          status: "success",
+          completedAt: new Date(),
+          durationSeconds,
+        },
+      });
+
+      const totalSuccessful = Object.values(results).reduce(
+        (sum, r) => sum + r.successful,
+        0,
+      );
+      const totalFailed = Object.values(results).reduce(
+        (sum, r) => sum + r.failed,
+        0,
+      );
+
+      await notifyJobCompleted("Daily Audit", true, durationSeconds, {
+        providers: providerNames.length,
+        successful: totalSuccessful,
+        failed: totalFailed,
+      });
+
+      return { success: true, results };
+    } catch (error) {
+      const durationSeconds = (Date.now() - startedAt) / 1000;
+      const message =
+        error instanceof Error ? error.message : "Unknown error";
+
+      await db.jobRun.update({
+        where: { id: jobRun.id },
+        data: {
+          status: "failed",
+          completedAt: new Date(),
+          durationSeconds,
+          errorMessage: message,
+        },
+      });
+
+      await notifyJobCompleted("Daily Audit", false, durationSeconds, {
+        error: message,
+      });
+
+      throw error;
+    } finally {
+      if (!success) {
+        /* error path already handled above */
+      }
+    }
+  },
+);

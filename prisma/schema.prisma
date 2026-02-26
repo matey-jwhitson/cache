@@ -130,7 +130,7 @@ model BrandProfile {
 
 model ICP {
   id           String   @id @default(cuid())
-  name         String
+  name         String   @unique
   description  String?
   pains        Json     @default("[]")
   jobsToBeDone Json     @default("[]")
@@ -142,7 +142,7 @@ model ICP {
 
 model IntentTaxonomy {
   id          String   @id @default(cuid())
-  text        String
+  text        String   @unique
   intentClass String
   meta        Json?
   createdAt   DateTime @default(now())
