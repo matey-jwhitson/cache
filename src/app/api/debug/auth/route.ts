@@ -87,6 +87,40 @@ export async function GET(request: Request) {
     };
   }
 
+  try {
+    const recentResults = await db.auditResult.findMany({
+      take: 5,
+      orderBy: { createdAt: "desc" },
+      select: { id: true, promptId: true, provider: true, createdAt: true },
+    });
+    const promptIds = recentResults.map((r) => r.promptId);
+    const matchingIntents = await db.intentTaxonomy.findMany({
+      where: { id: { in: promptIds } },
+      select: { id: true, text: true },
+    });
+    const intentCount = await db.intentTaxonomy.count();
+    checks.promptIdCheck = {
+      recentResults: recentResults.map((r) => ({
+        id: r.id,
+        promptId: r.promptId,
+        provider: r.provider,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      matchingIntents: matchingIntents.map((i) => ({
+        id: i.id,
+        text: i.text.substring(0, 60),
+      })),
+      totalIntentsInDb: intentCount,
+      allMatched: recentResults.every((r) =>
+        matchingIntents.some((i) => i.id === r.promptId),
+      ),
+    };
+  } catch (e) {
+    checks.promptIdCheck = {
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
   if (testProviders) {
     const providers = getAvailableProviders();
     const testResults: Record<string, unknown> = {};
