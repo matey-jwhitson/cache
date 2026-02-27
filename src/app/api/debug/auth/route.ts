@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { getAvailableProviders, type LLMRequest, LLM_DEFAULTS } from "@/lib/providers";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const testProviders = url.searchParams.get("test") === "providers";
   const checks: Record<string, unknown> = {};
 
   checks.env = {
@@ -82,6 +85,38 @@ export async function GET() {
     checks.recentAuditRuns = {
       error: e instanceof Error ? e.message : String(e),
     };
+  }
+
+  if (testProviders) {
+    const providers = getAvailableProviders();
+    const testResults: Record<string, unknown> = {};
+    const testReq: LLMRequest = {
+      messages: [{ role: "user", content: "Say hello in one word." }],
+      model: "",
+      temperature: LLM_DEFAULTS.temperature,
+      maxTokens: 20,
+      timeoutMs: 15_000,
+    };
+
+    for (const p of providers) {
+      try {
+        const resp = await p.chat({ ...testReq, model: p.defaultModel });
+        testResults[p.name] = {
+          model: p.defaultModel,
+          ok: !resp.error,
+          text: resp.text?.substring(0, 100),
+          error: resp.error ?? null,
+          latencyMs: Math.round(resp.latencyMs),
+        };
+      } catch (e) {
+        testResults[p.name] = {
+          model: p.defaultModel,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e),
+        };
+      }
+    }
+    checks.providerTest = testResults;
   }
 
   return NextResponse.json(checks, { status: 200 });
