@@ -9,6 +9,7 @@ import {
   triggerAudit,
   triggerReinforcement,
   triggerContentBuild,
+  triggerRssPoll,
 } from "@/lib/actions/jobs";
 import {
   getJobHistory,
@@ -20,6 +21,7 @@ import {
   Radar,
   Repeat,
   FileCode,
+  Rss,
   Loader2,
   CheckCircle2,
   XCircle,
@@ -334,6 +336,19 @@ export function ControlPanelActions({
             <FileCode className="h-4 w-4" />
           )}
           Run Content Build
+        </Button>
+        <Button
+          onClick={() => run(triggerRssPoll, "RSS Poll")}
+          disabled={isPending}
+          variant="secondary"
+          className="gap-2"
+        >
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Rss className="h-4 w-4" />
+          )}
+          Poll RSS Feeds
         </Button>
       </div>
 

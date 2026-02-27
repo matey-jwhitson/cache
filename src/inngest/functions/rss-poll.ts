@@ -5,7 +5,7 @@ import { notifyJobCompleted } from "@/lib/services/notifications";
 
 export const rssPoll = inngest.createFunction(
   { id: "rss-poll", name: "RSS Poll" },
-  [{ cron: "0 6 * * *" }],
+  [{ cron: "0 6 * * *" }, { event: "cache/rss.poll.requested" }],
   async () => {
     const startedAt = Date.now();
 

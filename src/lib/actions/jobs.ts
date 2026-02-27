@@ -72,3 +72,12 @@ export async function triggerContentBuild() {
     user.email ?? "unknown",
   );
 }
+
+export async function triggerRssPoll() {
+  const user = await requireAuth();
+  return createAndDispatch(
+    "rss_poll",
+    "cache/rss.poll.requested",
+    user.email ?? "unknown",
+  );
+}
