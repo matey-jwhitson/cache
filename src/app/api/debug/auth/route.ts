@@ -54,10 +54,32 @@ export async function GET() {
       type: j.jobType,
       status: j.status,
       startedAt: j.startedAt.toISOString(),
+      durationSeconds: j.durationSeconds,
       error: j.errorMessage,
     }));
   } catch (e) {
     checks.recentJobs = {
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+
+  try {
+    const recentRuns = await db.auditRun.findMany({
+      take: 8,
+      orderBy: { startedAt: "desc" },
+    });
+    checks.recentAuditRuns = recentRuns.map((r) => ({
+      id: r.id,
+      provider: r.provider,
+      model: r.model,
+      totalPrompts: r.totalPrompts,
+      successful: r.successful,
+      failed: r.failed,
+      startedAt: r.startedAt.toISOString(),
+      completedAt: r.completedAt?.toISOString() ?? null,
+    }));
+  } catch (e) {
+    checks.recentAuditRuns = {
       error: e instanceof Error ? e.message : String(e),
     };
   }

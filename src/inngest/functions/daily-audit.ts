@@ -5,7 +5,7 @@ import {
   auditPromptBatch,
   type AuditPrompt,
 } from "@/lib/services/auditor";
-import { getAvailableProviders, getProvider } from "@/lib/providers";
+import { getAvailableProviders } from "@/lib/providers";
 import { notifyJobCompleted } from "@/lib/services/notifications";
 
 const BATCH_SIZE = 5;
@@ -18,8 +18,6 @@ export const dailyAudit = inngest.createFunction(
   },
   [{ cron: "0 9 * * *" }, { event: "cache/audit.requested" }],
   async ({ event, step }) => {
-    const startedAt = Date.now();
-
     const setup = await step.run("setup", async () => {
       const providers = getAvailableProviders();
       if (providers.length === 0) {
@@ -66,6 +64,7 @@ export const dailyAudit = inngest.createFunction(
 
       return {
         jobRunId: jobRun.id,
+        startedAt: Date.now(),
         prompts: prompts.map((p) => ({
           id: p.id,
           text: p.text,
@@ -75,7 +74,7 @@ export const dailyAudit = inngest.createFunction(
       };
     });
 
-    const { jobRunId, prompts, providerConfigs } = setup;
+    const { jobRunId, startedAt, prompts, providerConfigs } = setup;
 
     const batches: AuditPrompt[][] = [];
     for (let i = 0; i < prompts.length; i += BATCH_SIZE) {
