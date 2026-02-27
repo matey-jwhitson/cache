@@ -27,7 +27,7 @@ export class OpenAIProvider implements Provider {
         messages: req.messages as OpenAI.ChatCompletionMessageParam[],
         temperature: req.temperature ?? LLM_DEFAULTS.temperature,
         top_p: req.topP ?? LLM_DEFAULTS.topP,
-        max_tokens: req.maxTokens ?? LLM_DEFAULTS.maxTokens,
+        max_completion_tokens: req.maxTokens ?? LLM_DEFAULTS.maxTokens,
       });
 
       const latencyMs = performance.now() - start;

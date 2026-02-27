@@ -46,7 +46,6 @@ export class AnthropicProvider implements Provider {
         messages: converted,
         ...(system ? { system } : {}),
         temperature: req.temperature ?? LLM_DEFAULTS.temperature,
-        top_p: req.topP ?? LLM_DEFAULTS.topP,
         max_tokens: req.maxTokens ?? LLM_DEFAULTS.maxTokens,
       });
 
