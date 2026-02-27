@@ -18,22 +18,33 @@ export default async function IntentsPage() {
     },
   });
 
-  const promptIds = [...new Set(results.map((r) => r.promptId))];
-  const intents = await db.intentTaxonomy.findMany({
-    where: { id: { in: promptIds } },
-  });
-  const intentMap = Object.fromEntries(
-    intents.map((i) => [i.id, { text: i.text, intentClass: i.intentClass }]),
+  const allIntents = await db.intentTaxonomy.findMany();
+  const intentById = Object.fromEntries(
+    allIntents.map((i) => [i.id, { text: i.text, intentClass: i.intentClass }]),
+  );
+  const intentByClass = Object.fromEntries(
+    allIntents.map((i) => [i.intentClass, { text: i.text, intentClass: i.intentClass }]),
   );
 
   const providers = [...new Set(results.map((r) => r.provider))];
 
-  const serialized = results.map((r) => ({
-    ...r,
-    createdAt: r.createdAt.toISOString(),
-    meta: r.meta as Record<string, unknown>,
-    promptText: intentMap[r.promptId]?.text ?? null,
-  }));
+  const serialized = results.map((r) => {
+    const meta = r.meta as Record<string, unknown>;
+    let promptText: string | null = null;
+    if (typeof meta?.promptText === "string") {
+      promptText = meta.promptText;
+    } else if (intentById[r.promptId]) {
+      promptText = intentById[r.promptId].text;
+    } else if (typeof meta?.intent === "string" && intentByClass[meta.intent]) {
+      promptText = intentByClass[meta.intent].text;
+    }
+    return {
+      ...r,
+      createdAt: r.createdAt.toISOString(),
+      meta,
+      promptText,
+    };
+  });
 
   return (
     <div className="space-y-8">

@@ -115,6 +115,7 @@ async function auditSinglePrompt(
         tokensOut: response.tokensOut,
         latencyMs: response.latencyMs,
         intent: prompt.intentClass,
+        promptText: prompt.text,
       },
     },
   });
