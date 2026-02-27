@@ -17,7 +17,7 @@ const MAX_CONCURRENCY: Record<string, number> = {
   anthropic: 5,
   gemini: 5,
   perplexity: 3,
-  grok: 3,
+  grok: 2,
 };
 
 const activeCounts = new Map<string, number>();

@@ -8,7 +8,7 @@ import {
 import { getAvailableProviders } from "@/lib/providers";
 import { notifyJobCompleted } from "@/lib/services/notifications";
 
-const BATCH_SIZE = 5;
+const BATCH_SIZE = 2;
 
 export const dailyAudit = inngest.createFunction(
   {

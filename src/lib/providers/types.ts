@@ -18,7 +18,7 @@ export const LLM_DEFAULTS = {
   temperature: 0.2,
   topP: 1,
   maxTokens: 800,
-  timeoutMs: 45_000,
+  timeoutMs: 30_000,
 } as const;
 
 export interface LLMResponse {
