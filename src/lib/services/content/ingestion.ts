@@ -2,7 +2,11 @@ import RSSParser from "rss-parser";
 import * as cheerio from "cheerio";
 import { db } from "@/lib/db";
 
-const parser = new RSSParser();
+const RSS_FETCH_TIMEOUT_MS = 30_000;
+
+const parser = new RSSParser({
+  timeout: RSS_FETCH_TIMEOUT_MS,
+});
 
 function normalizeHtml(html: string): { text: string; title?: string } {
   const $ = cheerio.load(html);
@@ -26,7 +30,18 @@ export interface IngestedItem {
 }
 
 export async function ingestRss(feedUrl: string): Promise<IngestedItem[]> {
-  const feed = await parser.parseURL(feedUrl);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), RSS_FETCH_TIMEOUT_MS);
+
+  let feed;
+  try {
+    const res = await fetch(feedUrl, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${feedUrl}`);
+    const xml = await res.text();
+    feed = await parser.parseString(xml);
+  } finally {
+    clearTimeout(timeoutId);
+  }
   const items: IngestedItem[] = [];
 
   for (const entry of feed.items) {
