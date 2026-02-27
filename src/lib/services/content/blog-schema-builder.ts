@@ -1,4 +1,4 @@
-import type { BrandProfile } from "@/generated/prisma/client";
+import type { BrandBible } from "@/lib/brand-bible/types";
 
 interface BlogPostingSchema {
   "@context": string;
@@ -35,10 +35,9 @@ function summarize(text: string, maxLen = 160): string {
 
 export function buildBlogPostingSchemas(
   posts: BlogPostRecord[],
-  brand: BrandProfile,
+  brand: BrandBible,
 ): BlogPostingSchema[] {
-  const orgName = brand.name;
-  const orgUrl = brand.url;
+  const logoUrl = brand.logoUrl || `${brand.url}/logo.png`;
 
   return posts.map((post) => ({
     "@context": "https://schema.org",
@@ -46,20 +45,20 @@ export function buildBlogPostingSchemas(
     headline: post.title,
     author: {
       "@type": post.author ? "Person" : "Organization",
-      name: post.author ?? orgName,
-      url: orgUrl,
+      name: post.author ?? brand.name,
+      url: brand.url,
     },
     publisher: {
       "@type": "Organization",
-      name: orgName,
-      url: orgUrl,
-      logo: { "@type": "ImageObject", url: `${orgUrl}/logo.png` },
+      name: brand.name,
+      url: brand.url,
+      logo: { "@type": "ImageObject", url: logoUrl },
     },
     datePublished: post.createdAt.toISOString().slice(0, 10),
     description: summarize(post.content),
     mainEntityOfPage: {
       "@type": "WebPage",
-      "@id": orgUrl,
+      "@id": brand.url,
     },
   }));
 }

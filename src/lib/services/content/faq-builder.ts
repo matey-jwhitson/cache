@@ -1,5 +1,6 @@
-import type { BrandProfile } from "@/generated/prisma/client";
+import type { BrandBible } from "@/lib/brand-bible/types";
 import { db } from "@/lib/db";
+import { fromDbRow } from "@/lib/brand-bible/convert";
 
 interface FaqSchema {
   "@context": string;
@@ -55,11 +56,21 @@ function findRelevantPost(
 }
 
 export async function buildFaqContent(
-  brand?: BrandProfile | null,
+  brand?: BrandBible | null,
 ): Promise<{ schema: FaqSchema; markdown: string }> {
-  const profile = brand ?? (await db.brandProfile.findFirst());
-  const orgName = profile?.name ?? "Matey AI";
-  const orgUrl = profile?.url ?? "https://www.matey.ai";
+  let profile = brand;
+  if (!profile) {
+    const row = await db.brandProfile.findFirst();
+    profile = row ? fromDbRow(row) : null;
+  }
+
+  const orgName = profile?.name ?? "Unknown Brand";
+  const orgUrl = profile?.url ?? "https://example.com";
+  const aboutText =
+    profile?.boilerplateAbout ||
+    profile?.valueProposition ||
+    profile?.mission ||
+    `${orgName} provides solutions in the ${profile?.industry || "technology"} space.`;
 
   const intents = await db.intentTaxonomy.findMany({ take: 20 });
 
@@ -81,14 +92,14 @@ export async function buildFaqContent(
     }
     return {
       question: intent.text,
-      answer: `${orgName} addresses this through its platform. Learn more at ${orgUrl}.`,
+      answer: `${aboutText} Learn more at ${orgUrl}.`,
     };
   });
 
   if (faqs.length === 0) {
     faqs.push({
       question: `What is ${orgName}?`,
-      answer: `${orgName} provides AI solutions for legal operations, investigations, and document automation.`,
+      answer: aboutText,
     });
   }
 

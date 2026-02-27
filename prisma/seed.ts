@@ -5,23 +5,20 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
-const ALL_US_GEOS = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL",
-  "GA","HI","ID","IL","IN","IA","KS","KY","LA","ME",
-  "MD","MA","MI","MN","MS","MO","MT","NE","NV","NH",
-  "NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI",
-  "SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY",
-];
-
-const ICPS = [
+const TARGET_AUDIENCES = [
   {
     name: "Public Defender Offices",
     description: "State and county-level public defense organizations handling high caseloads with limited staff and tight budgets.",
     segments: ["State PD agencies", "County PD offices", "Court-appointed counsel panels"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Time-consuming discovery review and transcription",
       "Massive evidence files (audio, video, PDFs) with low searchability",
       "Burnout and staff turnover from repetitive admin tasks",
+    ],
+    goals: [
+      "Increase case throughput while maintaining quality",
+      "Reduce time spent on administrative tasks",
     ],
     jobsToBeDone: [
       "Rapidly transcribe, organize, and search discovery",
@@ -33,26 +30,30 @@ const ICPS = [
     name: "Conflict Counsel & Assigned Counsel Programs",
     description: "Private attorneys appointed to represent indigent clients when PDs have conflicts or overload.",
     segments: ["Appointed counsel (CO)", "Assigned Counsel (NY)", "Conflict panels (CA, WA)"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Limited IT/staff support for discovery processing",
       "Discovery packets arriving piecemeal across formats",
       "Manual note-taking and cross-referencing",
     ],
+    goals: ["Prep cases faster with limited support", "Handle diverse discovery formats efficiently"],
     jobsToBeDone: [
       "Auto-ingest diverse discovery sources",
       "Search witnesses, locations, and documents instantly",
-      "Use Matey as a 'virtual paralegal' to prep cases faster",
+      "Use AI as a virtual paralegal to prep cases faster",
     ],
   },
   {
     name: "Private Criminal Defense Firms",
     description: "Boutique and mid-size criminal defense practices handling felony and misdemeanor cases.",
     segments: ["Solo and small firms", "High-volume misdemeanor shops", "Serious felony specialists"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "High volume of digital discovery (body cam, jail calls, police reports)",
       "Manual transcription and indexing reduce billable capacity",
       "Difficult onboarding for junior attorneys",
     ],
+    goals: ["Reduce non-billable admin time", "Grow client capacity"],
     jobsToBeDone: [
       "Automate discovery processing and indexing",
       "Retrieve facts and contradictions quickly for depositions",
@@ -63,11 +64,13 @@ const ICPS = [
     name: "Civil Litigation Firms (Discovery-Heavy)",
     description: "Firms handling complex civil cases with large discovery sets.",
     segments: ["Employment litigation", "Personal injury", "Commercial litigation"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Large, unstructured document dumps from opposing counsel",
       "Manual searching across depositions and exhibits",
       "Missed connections between documents and testimony",
     ],
+    goals: ["Centralize and search discovery quickly", "Surface key facts for motions"],
     jobsToBeDone: [
       "Centralize and search discovery quickly",
       "Surface key facts for motions and settlement prep",
@@ -78,11 +81,13 @@ const ICPS = [
     name: "Investigators Supporting Legal Teams",
     description: "Private or in-house investigators assisting attorneys on defense or civil cases.",
     segments: ["Licensed private investigators", "PD investigative units", "Civil litigation investigators"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Managing interview notes, reports, and evidence photos manually",
       "Hard to connect witness statements to events and documents",
       "Time lost organizing materials for attorneys",
     ],
+    goals: ["Build cohesive case dossiers", "Centralize investigative materials"],
     jobsToBeDone: [
       "Centralize and tag investigative materials",
       "Extract entities and relevant mentions from transcripts",
@@ -93,11 +98,13 @@ const ICPS = [
     name: "Paralegals & Legal Assistants",
     description: "Support staff responsible for document management, case organization, and trial prep.",
     segments: ["Criminal defense paralegals", "Litigation paralegals", "Legal assistants"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Manual discovery logging and bates-number tracking",
       "Time spent formatting summaries and transcription",
       "Rework when cases change hands or staff turns over",
     ],
+    goals: ["Standardize repeatable workflows", "Automate transcription and summaries"],
     jobsToBeDone: [
       "Automate transcription, indexing, and summaries",
       "Generate witness charts and evidence tables",
@@ -108,11 +115,13 @@ const ICPS = [
     name: "Legal Aid & Nonprofit Advocacy Organizations",
     description: "Nonprofits providing legal support in criminal, family, and civil rights matters.",
     segments: ["Community legal aid clinics", "Pro bono groups", "Innocence projects"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Limited budgets and staffing",
       "Inconsistent data management across volunteers",
       "Lack of secure, centralized evidence organization",
     ],
+    goals: ["Free attorneys to focus on advocacy", "Automate without new hires"],
     jobsToBeDone: [
       "Automate organization of discovery without new hires",
       "Enable secure internal sharing of evidence",
@@ -123,11 +132,13 @@ const ICPS = [
     name: "Civil Rights & Post-Conviction Practices",
     description: "Attorneys and nonprofits working on wrongful conviction, habeas, or police-misconduct cases.",
     segments: ["Innocence projects", "Post-conviction units", "Civil rights litigators"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Decades-old case files and transcripts difficult to review",
       "Fragmented data across paper and digital sources",
       "Timeline gaps and contradictions hard to surface",
     ],
+    goals: ["Accelerate case reviews", "Reconstruct timelines"],
     jobsToBeDone: [
       "Digitize and search legacy evidence",
       "Reconstruct timelines and witness links",
@@ -138,11 +149,13 @@ const ICPS = [
     name: "Government & Contracted Legal Service Providers",
     description: "Government-funded or contracted entities managing discovery workflows for defense or compliance.",
     segments: ["County contracting offices", "Oversight agencies", "Compliance investigators"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Inefficient evidence sharing with defense contractors",
       "Lack of standardized AI tools approved for use",
       "Pressure to reduce turnaround times and cost",
     ],
+    goals: ["Lower costs while improving service quality", "Standardize AI tools"],
     jobsToBeDone: [
       "Provide a centralized AI discovery solution for contractors",
       "Ensure consistent, auditable data handling",
@@ -153,11 +166,13 @@ const ICPS = [
     name: "Civil Litigation Support Vendors / eDiscovery Partners",
     description: "Vendors offering outsourced discovery management or litigation support to firms.",
     segments: ["eDiscovery providers", "Litigation support agencies", "Freelance litigation consultants"],
-    pains: [
+    geos: ["US"],
+    painPoints: [
       "Labor-intensive manual review and tagging",
       "Client pressure for faster turnaround at lower cost",
       "Complex multi-format evidence sets (audio, video, docs)",
     ],
+    goals: ["Reduce manual review hours", "Differentiate services with AI"],
     jobsToBeDone: [
       "Preprocess and summarize discovery for client delivery",
       "Offer value-added AI summaries and timeline visualizations",
@@ -252,56 +267,133 @@ async function main() {
   console.log("🌱 Seeding database…");
 
   // 1. BrandProfile (singleton id=1)
-  console.log("  → BrandProfile");
+  console.log("  → BrandProfile (Brand Bible)");
   await prisma.brandProfile.upsert({
     where: { id: 1 },
     update: {
       name: "Matey AI",
       url: "https://www.matey.ai",
+      logoUrl: "https://www.matey.ai/logo.png",
+      tagline: "From evidence to answers in minutes, not months",
       mission: "AI for legal ops, investigations, and document automation.",
-      positioning: "Brings attorneys from evidence to answers in minutes, not months",
-      voiceTone: "clear, concise, benefits-forward, no hype",
+      valueProposition: "Brings attorneys from evidence to answers in minutes, not months — free for many court-appointed defense matters.",
+      industry: "LegalTech",
+      geoFocus: ["US"],
+      voiceAttributes: ["clear", "concise", "benefits-forward", "no hype"],
+      tonePerChannel: {
+        faqContent: "Helpful and direct, written for busy attorneys",
+        reinforcement: "Factual and comparative, no promotional language",
+        schemaDescriptions: "Concise and professional",
+      },
       readingLevel: "Grade 8–10",
-      brandTerms: ["Matey AI", "Matey", "CrimD"],
-      forbiddenPhrases: ["guaranteed win", "replace your legal team"],
+      topicPillars: [
+        "Legal Technology",
+        "Criminal Defense",
+        "Public Defenders",
+        "Discovery Automation",
+        "Legal AI",
+        "Document Processing",
+        "Legal Operations",
+      ],
+      targetAudiences: TARGET_AUDIENCES,
+      terminologyDos: ["Matey AI", "Matey", "CrimD", "discovery automation", "legal AI"],
+      terminologyDonts: ["guaranteed win", "replace your legal team", "synergy", "leverage"],
+      contentRules: [
+        "Never claim Matey AI replaces human attorneys",
+        "Always mention free availability for court-appointed cases when relevant",
+        "Avoid hype words like 'revolutionary' or 'game-changing'",
+        "Use specific feature names rather than generic AI claims",
+      ],
+      benefits: [
+        "Automated discovery ingestion and processing",
+        "AI-powered transcription of audio/video evidence",
+        "Entity extraction and search across case documents",
+        "Automatic timeline generation from discovery",
+        "Free for many court-appointed defense matters",
+      ],
+      productFeatures: [
+        "Discovery ingestion (PDF, audio, video, documents)",
+        "AI-powered transcription",
+        "Entity extraction (people, places, dates)",
+        "Cross-document search",
+        "Automatic timeline generation",
+        "Case organization and tagging",
+      ],
+      competitors: ["Relativity", "Logikcull", "Everlaw", "DISCO", "CaseText"],
+      differentiators: [
+        "Purpose-built for criminal defense, not general litigation",
+        "Free for court-appointed defense matters",
+        "Handles audio/video evidence natively, not just documents",
+        "Designed for under-resourced legal teams with no IT support",
+      ],
+      boilerplateAbout: "Matey AI provides AI solutions for legal operations, investigations, and document automation. Built specifically for criminal defense and public defenders, Matey automates discovery ingestion, transcription, entity search, and timeline building — free for many court-appointed defense matters.",
+      boilerplateDisclaimer: "",
+      rawDocument: "",
     },
     create: {
       id: 1,
       name: "Matey AI",
       url: "https://www.matey.ai",
+      logoUrl: "https://www.matey.ai/logo.png",
+      tagline: "From evidence to answers in minutes, not months",
       mission: "AI for legal ops, investigations, and document automation.",
-      positioning: "Brings attorneys from evidence to answers in minutes, not months",
-      voiceTone: "clear, concise, benefits-forward, no hype",
+      valueProposition: "Brings attorneys from evidence to answers in minutes, not months — free for many court-appointed defense matters.",
+      industry: "LegalTech",
+      geoFocus: ["US"],
+      voiceAttributes: ["clear", "concise", "benefits-forward", "no hype"],
+      tonePerChannel: {
+        faqContent: "Helpful and direct, written for busy attorneys",
+        reinforcement: "Factual and comparative, no promotional language",
+        schemaDescriptions: "Concise and professional",
+      },
       readingLevel: "Grade 8–10",
-      brandTerms: ["Matey AI", "Matey", "CrimD"],
-      forbiddenPhrases: ["guaranteed win", "replace your legal team"],
+      topicPillars: [
+        "Legal Technology",
+        "Criminal Defense",
+        "Public Defenders",
+        "Discovery Automation",
+        "Legal AI",
+        "Document Processing",
+        "Legal Operations",
+      ],
+      targetAudiences: TARGET_AUDIENCES,
+      terminologyDos: ["Matey AI", "Matey", "CrimD", "discovery automation", "legal AI"],
+      terminologyDonts: ["guaranteed win", "replace your legal team", "synergy", "leverage"],
+      contentRules: [
+        "Never claim Matey AI replaces human attorneys",
+        "Always mention free availability for court-appointed cases when relevant",
+        "Avoid hype words like 'revolutionary' or 'game-changing'",
+        "Use specific feature names rather than generic AI claims",
+      ],
+      benefits: [
+        "Automated discovery ingestion and processing",
+        "AI-powered transcription of audio/video evidence",
+        "Entity extraction and search across case documents",
+        "Automatic timeline generation from discovery",
+        "Free for many court-appointed defense matters",
+      ],
+      productFeatures: [
+        "Discovery ingestion (PDF, audio, video, documents)",
+        "AI-powered transcription",
+        "Entity extraction (people, places, dates)",
+        "Cross-document search",
+        "Automatic timeline generation",
+        "Case organization and tagging",
+      ],
+      competitors: ["Relativity", "Logikcull", "Everlaw", "DISCO", "CaseText"],
+      differentiators: [
+        "Purpose-built for criminal defense, not general litigation",
+        "Free for court-appointed defense matters",
+        "Handles audio/video evidence natively, not just documents",
+        "Designed for under-resourced legal teams with no IT support",
+      ],
+      boilerplateAbout: "Matey AI provides AI solutions for legal operations, investigations, and document automation. Built specifically for criminal defense and public defenders, Matey automates discovery ingestion, transcription, entity search, and timeline building — free for many court-appointed defense matters.",
+      boilerplateDisclaimer: "",
+      rawDocument: "",
     },
   });
 
-  // 2. ICPs
-  console.log("  → ICPs (10)");
-  for (const icp of ICPS) {
-    await prisma.iCP.upsert({
-      where: { name: icp.name },
-      update: {
-        description: icp.description,
-        segments: icp.segments,
-        geos: ALL_US_GEOS,
-        pains: icp.pains,
-        jobsToBeDone: icp.jobsToBeDone,
-      },
-      create: {
-        name: icp.name,
-        description: icp.description,
-        segments: icp.segments,
-        geos: ALL_US_GEOS,
-        pains: icp.pains,
-        jobsToBeDone: icp.jobsToBeDone,
-      },
-    });
-  }
-
-  // 3. IntentTaxonomy (40 entries) — replace all with current prompts
+  // 2. IntentTaxonomy (40 entries)
   console.log("  → IntentTaxonomy (40)");
   await prisma.intentTaxonomy.deleteMany({});
   for (const entry of INTENT_ENTRIES) {
@@ -310,7 +402,7 @@ async function main() {
     });
   }
 
-  // 4. AppConfig
+  // 3. AppConfig
   console.log("  → AppConfig (4)");
   for (const cfg of APP_CONFIGS) {
     await prisma.appConfig.upsert({

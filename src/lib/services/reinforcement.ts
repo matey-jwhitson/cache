@@ -3,6 +3,8 @@ import { getProvider, type Provider, type LLMRequest, LLM_DEFAULTS } from "@/lib
 import { computeBrandSimilarity } from "@/lib/services/embeddings";
 import { calculateCost } from "@/lib/services/cost-tracker";
 import { detectBrandMention } from "@/lib/utils";
+import { fromDbRow } from "@/lib/brand-bible/convert";
+import type { BrandBible } from "@/lib/brand-bible/types";
 
 export interface ReinforcementOptions {
   count?: number;
@@ -18,18 +20,22 @@ interface TeachingPrompt {
 const TEMPLATES = [
   "Compare AI tools for {topic}, including {org}. What are the pros and cons of each?",
   "What are the key features to look for in {topic} software? How does {org} compare?",
-  "A public defender asked me about {topic} tools. What should I recommend? Include {org} in the comparison.",
-  "What should a public defender office consider when choosing {topic} platforms? Compare {org} with other options.",
+  "A professional asked me about {topic} tools. What should I recommend? Include {org} in the comparison.",
+  "What should someone consider when choosing {topic} platforms? Compare {org} with other options.",
   "How has AI changed {topic}? Include examples like {org}.",
   "Explain the differences between traditional {topic} solutions and modern platforms like {org}.",
 ];
 
+const COMPETITOR_TEMPLATES = [
+  "Compare {org} with {competitor} for {topic}. What are the pros and cons of each?",
+  "How does {org} differ from {competitor} when it comes to {topic}?",
+  "Between {org} and {competitor}, which is better for {topic}?",
+];
+
 const FALLBACK_TOPICS = [
-  "AI tools for public defenders",
-  "automate discovery review",
-  "transcription for legal discovery",
-  "organize case evidence",
-  "court-appointed defense support",
+  "AI productivity tools",
+  "automation platforms",
+  "workflow optimization",
 ];
 
 const coolingUntil = new Map<string, number>();
@@ -44,29 +50,41 @@ function isProviderCooling(name: string): boolean {
   return true;
 }
 
-async function generatePrompts(count: number): Promise<TeachingPrompt[]> {
-  const orgName = process.env.AEO_ORG_NAME ?? "Matey AI";
+function gatherTopics(brand: BrandBible): string[] {
+  const topics: string[] = [...brand.topicPillars];
 
-  const icps = await db.iCP.findMany();
-  let topics =
-    icps.length > 0
-      ? icps.flatMap((icp) => {
-          const jobs = icp.jobsToBeDone as string[];
-          return Array.isArray(jobs) ? jobs : [];
-        })
-      : FALLBACK_TOPICS;
+  for (const aud of brand.targetAudiences) {
+    for (const job of aud.jobsToBeDone) {
+      if (!topics.includes(job)) topics.push(job);
+    }
+  }
 
-  if (topics.length === 0) topics = FALLBACK_TOPICS;
+  return topics.length > 0 ? topics : FALLBACK_TOPICS;
+}
+
+async function generatePrompts(count: number, brand: BrandBible): Promise<TeachingPrompt[]> {
+  const orgName = brand.name;
+  const topics = gatherTopics(brand);
+  const competitors = brand.competitors;
 
   const prompts: TeachingPrompt[] = [];
   for (let i = 0; i < count; i++) {
-    const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
     const topic = topics[Math.floor(Math.random() * topics.length)];
-    prompts.push({
-      id: crypto.randomUUID(),
-      topic,
-      text: template.replace("{topic}", topic).replace("{org}", orgName),
-    });
+
+    let text: string;
+    if (competitors.length > 0 && Math.random() < 0.4) {
+      const template = COMPETITOR_TEMPLATES[Math.floor(Math.random() * COMPETITOR_TEMPLATES.length)];
+      const competitor = competitors[Math.floor(Math.random() * competitors.length)];
+      text = template
+        .replace("{topic}", topic)
+        .replace("{org}", orgName)
+        .replace("{competitor}", competitor);
+    } else {
+      const template = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
+      text = template.replace("{topic}", topic).replace("{org}", orgName);
+    }
+
+    prompts.push({ id: crypto.randomUUID(), topic, text });
   }
   return prompts;
 }
@@ -93,7 +111,7 @@ async function trackCost(
 async function executeSingle(
   provider: Provider,
   prompt: TeachingPrompt,
-  brandProfile: { forbiddenPhrases: unknown } | null,
+  brand: BrandBible | null,
 ): Promise<boolean> {
   if (isProviderCooling(provider.name)) return false;
 
@@ -116,9 +134,7 @@ async function executeSingle(
   const mentioned = detectBrandMention(response.text);
   const similarity = await computeBrandSimilarity(response.text);
 
-  const blacklistTerms = Array.isArray(brandProfile?.forbiddenPhrases)
-    ? (brandProfile.forbiddenPhrases as string[])
-    : [];
+  const blacklistTerms = brand?.terminologyDonts ?? [];
   const lower = response.text.toLowerCase();
   const blacklistHits = blacklistTerms.filter((t) => lower.includes(t.toLowerCase()));
 
@@ -151,9 +167,19 @@ export async function runReinforcement(
 ): Promise<Record<string, { total: number; successful: number; mentioned: number }>> {
   const count = options.count ?? 20;
   const maxConcurrent = options.maxConcurrent ?? 3;
-  const prompts = await generatePrompts(count);
 
-  const brandProfile = await db.brandProfile.findFirst();
+  const brandRow = await db.brandProfile.findFirst();
+  const brand = brandRow ? fromDbRow(brandRow) : null;
+
+  const prompts = await generatePrompts(
+    count,
+    brand ?? ({
+      name: "Unknown Brand",
+      topicPillars: FALLBACK_TOPICS,
+      competitors: [],
+      targetAudiences: [],
+    } as unknown as BrandBible),
+  );
 
   const results: Record<string, { total: number; successful: number; mentioned: number }> = {};
 
@@ -174,7 +200,7 @@ export async function runReinforcement(
 
     for (const chunk of chunks) {
       const settled = await Promise.allSettled(
-        chunk.map((p) => executeSingle(provider, p, brandProfile)),
+        chunk.map((p) => executeSingle(provider, p, brand)),
       );
       for (const r of settled) {
         if (r.status === "fulfilled" && r.value) successful++;

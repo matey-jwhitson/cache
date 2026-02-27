@@ -13,7 +13,6 @@ import {
   Grid3X3,
   Repeat,
   Building2,
-  Users,
   Database,
   ClipboardList,
   ChevronLeft,
@@ -62,8 +61,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "Brand",
     items: [
-      { href: "/brand", label: "Brand Profile", icon: Building2 },
-      { href: "/icps", label: "ICPs", icon: Users },
+      { href: "/brand", label: "Brand Bible", icon: Building2 },
       { href: "/sources", label: "Content Sources", icon: Database },
     ],
   },

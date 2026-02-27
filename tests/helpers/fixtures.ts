@@ -5,12 +5,37 @@ export function createBrandProfile(overrides = {}) {
     id: 1,
     name: faker.company.name(),
     url: faker.internet.url(),
+    logoUrl: "",
+    tagline: faker.company.catchPhrase(),
     mission: faker.company.catchPhrase(),
-    positioning: faker.lorem.sentence(),
-    voiceTone: "professional",
+    valueProposition: faker.lorem.sentence(),
+    industry: "LegalTech",
+    geoFocus: JSON.stringify(["US"]),
+    voiceAttributes: JSON.stringify(["professional", "clear"]),
+    tonePerChannel: JSON.stringify({}),
     readingLevel: "8th grade",
-    brandTerms: JSON.stringify(["AI", "automation", "insights"]),
-    forbiddenPhrases: JSON.stringify(["synergy", "leverage"]),
+    topicPillars: JSON.stringify(["Legal Technology", "AI"]),
+    targetAudiences: JSON.stringify([
+      {
+        name: "Test Audience",
+        description: "A test audience",
+        painPoints: ["pain1"],
+        goals: ["goal1"],
+        jobsToBeDone: ["job1"],
+        geos: ["US"],
+        segments: ["enterprise"],
+      },
+    ]),
+    terminologyDos: JSON.stringify(["AI", "automation", "insights"]),
+    terminologyDonts: JSON.stringify(["synergy", "leverage"]),
+    contentRules: JSON.stringify(["Never use hype words"]),
+    benefits: JSON.stringify(["Saves time", "Reduces cost"]),
+    productFeatures: JSON.stringify(["AI transcription", "Search"]),
+    competitors: JSON.stringify(["Competitor A"]),
+    differentiators: JSON.stringify(["Unique feature"]),
+    boilerplateAbout: "",
+    boilerplateDisclaimer: "",
+    rawDocument: "",
     ...overrides,
   };
 }
@@ -36,18 +61,6 @@ export function createAuditResult(runId: string, overrides = {}) {
     mentionRank: faker.number.int({ min: 1, max: 10 }),
     similarity: faker.number.float({ min: 0, max: 1, fractionDigits: 4 }),
     meta: JSON.stringify({}),
-    ...overrides,
-  };
-}
-
-export function createICP(overrides = {}) {
-  return {
-    name: faker.person.jobTitle(),
-    description: faker.lorem.sentence(),
-    pains: JSON.stringify([faker.lorem.sentence(), faker.lorem.sentence()]),
-    jobsToBeDone: JSON.stringify([faker.lorem.sentence()]),
-    geos: JSON.stringify(["US", "UK"]),
-    segments: JSON.stringify(["enterprise", "mid-market"]),
     ...overrides,
   };
 }

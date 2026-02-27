@@ -115,30 +115,35 @@ model ReinforcementLog {
 }
 
 model BrandProfile {
-  id               Int      @id @default(1)
-  name             String
-  url              String
-  mission          String?
-  positioning      String?
-  voiceTone        String?
-  readingLevel     String?
-  brandTerms       Json     @default("[]")
-  forbiddenPhrases Json     @default("[]")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                    Int      @id @default(1)
+  name                  String
+  url                   String
+  logoUrl               String   @default("")
+  tagline               String   @default("")
+  mission               String?
+  valueProposition      String?
+  industry              String   @default("")
+  geoFocus              Json     @default("[]")
+  voiceAttributes       Json     @default("[]")
+  tonePerChannel        Json     @default("{}")
+  readingLevel          String?
+  topicPillars          Json     @default("[]")
+  targetAudiences       Json     @default("[]")
+  terminologyDos        Json     @default("[]")
+  terminologyDonts      Json     @default("[]")
+  contentRules          Json     @default("[]")
+  benefits              Json     @default("[]")
+  productFeatures       Json     @default("[]")
+  competitors           Json     @default("[]")
+  differentiators       Json     @default("[]")
+  boilerplateAbout      String   @default("")
+  boilerplateDisclaimer String   @default("")
+  rawDocument           String   @default("")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 }
 
-model ICP {
-  id           String   @id @default(cuid())
-  name         String   @unique
-  description  String?
-  pains        Json     @default("[]")
-  jobsToBeDone Json     @default("[]")
-  geos         Json     @default("[]")
-  segments     Json     @default("[]")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
+// ICP model removed -- audience data consolidated into BrandProfile.targetAudiences
 
 model IntentTaxonomy {
   id          String   @id @default(cuid())

@@ -10,8 +10,8 @@ export default async function ContentQAPage() {
     take: 10,
   });
 
-  const forbiddenPhrases = Array.isArray(brand?.forbiddenPhrases)
-    ? (brand.forbiddenPhrases as string[])
+  const forbiddenPhrases = Array.isArray(brand?.terminologyDonts)
+    ? (brand.terminologyDonts as string[])
     : [];
 
   const gates = artifacts.map((artifact) => {

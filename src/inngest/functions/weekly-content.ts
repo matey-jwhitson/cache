@@ -27,8 +27,9 @@ export const weeklyContent = inngest.createFunction(
     });
 
     try {
-      const brand = await db.brandProfile.findFirst();
-      if (!brand) throw new Error("BrandProfile not found");
+      const brandRow = await db.brandProfile.findFirst();
+      if (!brandRow) throw new Error("BrandProfile not found");
+      const brand = (await import("@/lib/brand-bible/convert")).fromDbRow(brandRow);
 
       const blogPosts = await db.contentItem.findMany({
         where: { sourceType: "rss" },

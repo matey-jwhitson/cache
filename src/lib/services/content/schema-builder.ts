@@ -1,4 +1,4 @@
-import type { BrandProfile } from "@/generated/prisma/client";
+import type { BrandBible } from "@/lib/brand-bible/types";
 
 interface OrganizationSchema {
   "@context": string;
@@ -62,38 +62,29 @@ interface SoftwareSchema {
 }
 
 export function buildOrganizationSchema(
-  brand: BrandProfile,
+  brand: BrandBible,
   blogPosts: BlogPostInput[] = [],
 ): OrganizationSchema {
-  const orgName = brand.name;
-  const orgUrl = brand.url;
   const description =
-    brand.positioning ?? brand.mission ?? "AI for legal ops, investigations, and document automation.";
-  const logo = `${orgUrl}/logo.png`;
-  const host = orgUrl.replace(/^https?:\/\//, "");
+    brand.valueProposition || brand.mission || `${brand.name} — ${brand.industry}`;
+  const logo = brand.logoUrl || `${brand.url}/logo.png`;
+  const host = brand.url.replace(/^https?:\/\//, "");
 
-  const baseTopics = [
-    "Legal Technology",
-    "Criminal Defense",
-    "Public Defenders",
-    "Discovery Automation",
-    "Legal AI",
-    "Document Processing",
-    "Legal Operations",
-  ];
-
+  const basePillars = brand.topicPillars.length > 0 ? brand.topicPillars : [];
   const blogTopics = extractTopicsFromBlogPosts(blogPosts);
-  const baseSet = new Set(baseTopics.map((t) => t.toLowerCase()));
+  const baseSet = new Set(basePillars.map((t) => t.toLowerCase()));
   const combined = [
-    ...baseTopics,
+    ...basePillars,
     ...blogTopics.filter((t) => !baseSet.has(t.toLowerCase())),
   ];
+
+  const primaryGeo = brand.geoFocus[0] ?? "US";
 
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: orgName,
-    url: orgUrl,
+    name: brand.name,
+    url: brand.url,
     description,
     logo,
     contactPoint: {
@@ -103,68 +94,67 @@ export function buildOrganizationSchema(
     },
     address: {
       "@type": "PostalAddress",
-      addressCountry: "US",
+      addressCountry: primaryGeo,
     },
     knowsAbout: combined,
     serviceArea: {
       "@type": "GeoCircle",
       geoMidpoint: {
         "@type": "GeoCoordinates",
-        addressCountry: "US",
+        addressCountry: primaryGeo,
       },
     },
   };
 }
 
-export function buildSoftwareSchema(
-  brand: BrandProfile,
-): SoftwareSchema {
-  const orgName = brand.name;
-  const orgUrl = brand.url;
+export function buildSoftwareSchema(brand: BrandBible): SoftwareSchema {
   const description =
-    brand.positioning ?? brand.mission ?? "AI for legal ops, investigations, and document automation.";
+    brand.valueProposition || brand.mission || `${brand.name} — ${brand.industry}`;
 
-  const brandTerms = Array.isArray(brand.brandTerms)
-    ? (brand.brandTerms as string[])
-    : [];
+  const audienceType =
+    brand.targetAudiences.length > 0
+      ? brand.targetAudiences[0].name
+      : "Professionals";
+
+  const keywords = [
+    ...brand.topicPillars.slice(0, 5),
+    ...brand.productFeatures.slice(0, 3),
+    brand.industry,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    name: `${orgName} Platform`,
-    applicationCategory: "LegalTech",
+    name: `${brand.name} Platform`,
+    applicationCategory: brand.industry || "Software",
     operatingSystem: "Web",
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
       availability: "https://schema.org/InStock",
-      description: "Free for court-appointed defense matters",
     },
-    url: orgUrl,
+    url: brand.url,
     description,
     featureList:
-      brandTerms.length > 0
-        ? brandTerms
-        : [
-            "Automated discovery ingestion and processing",
-            "AI-powered transcription of audio/video evidence",
-            "Entity extraction and search across case documents",
-            "Automatic timeline generation from discovery",
-          ],
+      brand.productFeatures.length > 0
+        ? brand.productFeatures
+        : brand.benefits,
     softwareVersion: "2.0",
     author: {
       "@type": "Organization",
-      name: orgName,
-      url: orgUrl,
+      name: brand.name,
+      url: brand.url,
     },
     audience: {
       "@type": "ProfessionalAudience",
-      audienceType: "Legal Professionals",
+      audienceType,
     },
-    usageInfo:
-      "Designed for public defenders, court-appointed attorneys, and criminal defense counsel",
-    keywords:
-      "legal AI, criminal defense, discovery automation, public defender tools, legal operations, evidence management, transcription, timeline generation",
+    ...(brand.differentiators.length > 0
+      ? { usageInfo: brand.differentiators.join(". ") }
+      : {}),
+    ...(keywords ? { keywords } : {}),
   };
 }

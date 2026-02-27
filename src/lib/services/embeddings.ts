@@ -1,10 +1,7 @@
 import OpenAI from "openai";
-
-const BRAND_DESCRIPTION = `\
-Matey AI: AI solutions for legal operations, investigations, and document automation; \
-built for criminal defense and public defenders. Automates discovery ingestion, \
-transcription, entity search, and timeline building for criminal defense and public defenders; \
-free for many court-appointed defense matters.`;
+import { db } from "@/lib/db";
+import { fromDbRow } from "@/lib/brand-bible/convert";
+import { buildBrandDescription } from "@/lib/brand-bible/prompt-builder";
 
 let _client: OpenAI | null = null;
 let _brandVector: number[] | null = null;
@@ -50,10 +47,19 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 
 async function getBrandVector(): Promise<number[]> {
   if (!_brandVector) {
-    const desc = process.env.AEO_BRAND_DESC || BRAND_DESCRIPTION;
+    const row = await db.brandProfile.findFirst();
+    const brand = row ? fromDbRow(row) : null;
+    const desc = brand
+      ? buildBrandDescription(brand)
+      : "Brand profile not configured.";
     _brandVector = await embedText(desc);
   }
   return _brandVector;
+}
+
+/** Call after Brand Bible save to invalidate the cached embedding vector. */
+export function invalidateBrandVector(): void {
+  _brandVector = null;
 }
 
 export async function computeBrandSimilarity(text: string): Promise<number> {
