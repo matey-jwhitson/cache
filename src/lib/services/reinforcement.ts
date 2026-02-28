@@ -11,7 +11,7 @@ export interface ReinforcementOptions {
   maxConcurrent?: number;
 }
 
-interface TeachingPrompt {
+export interface TeachingPrompt {
   id: string;
   topic: string;
   text: string;
@@ -62,7 +62,7 @@ function gatherTopics(brand: BrandBible): string[] {
   return topics.length > 0 ? topics : FALLBACK_TOPICS;
 }
 
-async function generatePrompts(count: number, brand: BrandBible): Promise<TeachingPrompt[]> {
+export async function generatePrompts(count: number, brand: BrandBible): Promise<TeachingPrompt[]> {
   const orgName = brand.name;
   const topics = gatherTopics(brand);
   const competitors = brand.competitors;
@@ -159,6 +159,38 @@ async function executeSingle(
   });
 
   return true;
+}
+
+export async function reinforceBatch(
+  providerName: string,
+  prompts: TeachingPrompt[],
+  brand: BrandBible | null,
+): Promise<{ successful: number; mentioned: number }> {
+  let provider: Provider;
+  try {
+    provider = getProvider(providerName);
+  } catch {
+    return { successful: 0, mentioned: 0 };
+  }
+
+  const settled = await Promise.allSettled(
+    prompts.map((p) => executeSingle(provider, p, brand)),
+  );
+
+  let successful = 0;
+  for (const r of settled) {
+    if (r.status === "fulfilled" && r.value) successful++;
+  }
+
+  const logs = await db.reinforcementLog.findMany({
+    where: {
+      provider: providerName,
+      promptId: { in: prompts.map((p) => p.id) },
+    },
+  });
+  const mentioned = logs.filter((l) => l.mentioned).length;
+
+  return { successful, mentioned };
 }
 
 export async function runReinforcement(

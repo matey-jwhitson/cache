@@ -16,7 +16,7 @@ export const dailyAudit = inngest.createFunction(
     name: "Daily Audit",
     timeouts: { finish: "45m" },
   },
-  [{ cron: "0 9 * * *" }, { event: "cache/audit.requested" }],
+  [{ cron: "0 14 * * *" }, { event: "cache/audit.requested" }],
   async ({ event, step }) => {
     const setup = await step.run("setup", async () => {
       const providers = getAvailableProviders();
