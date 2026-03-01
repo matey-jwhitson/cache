@@ -6,13 +6,20 @@ import { Badge } from "@/components/ui/badge";
 import { LocalTime } from "@/components/ui/local-time";
 
 export default async function OverviewPage() {
-  const [results, latestRuns, intentCount] = await Promise.all([
-    db.auditResult.findMany({
-      include: { run: { select: { model: true, startedAt: true } } },
-    }),
+  const [latestRuns, intentCount] = await Promise.all([
     db.auditRun.findMany({ orderBy: { startedAt: "desc" }, take: 10 }),
     db.intentTaxonomy.count(),
   ]);
+
+  const recentRunIds = latestRuns
+    .filter((r) => r.completedAt != null)
+    .slice(0, 8)
+    .map((r) => r.id);
+
+  const results = await db.auditResult.findMany({
+    where: { runId: { in: recentRunIds } },
+    include: { run: { select: { model: true, startedAt: true } } },
+  });
 
   const samplePrompts = await db.auditResult.findMany({
     take: 5,

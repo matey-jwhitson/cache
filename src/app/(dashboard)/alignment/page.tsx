@@ -6,6 +6,8 @@ import { cn } from "@/lib/utils";
 
 export default async function AlignmentPage() {
   const results = await db.auditResult.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 1000,
     select: {
       provider: true,
       mentioned: true,

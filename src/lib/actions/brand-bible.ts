@@ -14,8 +14,17 @@ export async function analyzeBrandDocument(rawText: string) {
     throw new Error("Please provide at least a few sentences of brand text to analyze.");
   }
 
-  const extracted = await extractBrandData(rawText);
-  return extracted;
+  try {
+    const extracted = await extractBrandData(rawText);
+    return extracted;
+  } catch (error) {
+    if (error instanceof Error && error.name === "TimeoutError") {
+      throw new Error(
+        "The analysis timed out. Try shortening the document or pasting the most important sections.",
+      );
+    }
+    throw error;
+  }
 }
 
 export async function saveBrandBible(data: BrandBibleFormData, rawDocument?: string) {

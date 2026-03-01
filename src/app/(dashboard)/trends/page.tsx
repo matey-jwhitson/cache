@@ -4,6 +4,7 @@ import { TrendsCharts } from "./trends-charts";
 export default async function TrendsPage() {
   const results = await db.auditResult.findMany({
     orderBy: { createdAt: "asc" },
+    take: 2000,
     select: {
       provider: true,
       mentioned: true,

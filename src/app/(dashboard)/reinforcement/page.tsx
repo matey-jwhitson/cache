@@ -4,6 +4,7 @@ import { ReinforcementCharts } from "./reinforcement-charts";
 export default async function ReinforcementPage() {
   const logs = await db.reinforcementLog.findMany({
     orderBy: { createdAt: "desc" },
+    take: 1000,
   });
 
   const byProvider: Record<string, { total: number; mentioned: number; simSum: number }> = {};

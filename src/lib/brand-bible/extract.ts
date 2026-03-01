@@ -22,6 +22,7 @@ export async function extractBrandData(rawText: string) {
     schema: extractionSchema,
     system: SYSTEM_PROMPT,
     prompt: rawText,
+    abortSignal: AbortSignal.timeout(50_000),
   });
 
   return object;

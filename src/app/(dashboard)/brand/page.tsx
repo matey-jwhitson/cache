@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { fromDbRow } from "@/lib/brand-bible/convert";
 import { BrandBibleEditor } from "./brand-bible-editor";
 
+export const maxDuration = 60;
+
 export default async function BrandPage() {
   const row = await db.brandProfile.findFirst();
   const brand = row ? fromDbRow(row) : null;

@@ -43,11 +43,18 @@ export async function ingestRss(feedUrl: string): Promise<IngestedItem[]> {
     clearTimeout(timeoutId);
   }
   const items: IngestedItem[] = [];
+  const feedEntries = feed.items.slice(0, 50);
 
-  for (const entry of feed.items) {
+  for (const entry of feedEntries) {
     const rawContent = entry["content:encoded"] ?? entry.content ?? entry.summary ?? "";
     const { text } = normalizeHtml(rawContent);
     const title = entry.title ?? text.slice(0, 60);
+
+    const existing = await db.contentItem.findFirst({
+      where: { title, sourceType: "rss" },
+      select: { id: true },
+    });
+    if (existing) continue;
 
     const record = await db.contentItem.create({
       data: {

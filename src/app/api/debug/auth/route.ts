@@ -123,30 +123,38 @@ export async function GET(request: Request) {
 
   if (testProviders) {
     const providers = getAvailableProviders();
-    const testResults: Record<string, unknown> = {};
     const testReq: LLMRequest = {
       messages: [{ role: "user", content: "Say hello in one word." }],
       model: "",
       temperature: LLM_DEFAULTS.temperature,
       maxTokens: 20,
-      timeoutMs: 15_000,
+      timeoutMs: 10_000,
     };
 
-    for (const p of providers) {
-      try {
+    const settled = await Promise.allSettled(
+      providers.map(async (p) => {
         const resp = await p.chat({ ...testReq, model: p.defaultModel });
-        testResults[p.name] = {
+        return {
+          name: p.name,
           model: p.defaultModel,
           ok: !resp.error,
           text: resp.text?.substring(0, 100),
           error: resp.error ?? null,
           latencyMs: Math.round(resp.latencyMs),
         };
-      } catch (e) {
-        testResults[p.name] = {
-          model: p.defaultModel,
+      }),
+    );
+
+    const testResults: Record<string, unknown> = {};
+    for (let i = 0; i < providers.length; i++) {
+      const r = settled[i];
+      if (r.status === "fulfilled") {
+        testResults[r.value.name] = r.value;
+      } else {
+        testResults[providers[i].name] = {
+          model: providers[i].defaultModel,
           ok: false,
-          error: e instanceof Error ? e.message : String(e),
+          error: r.reason instanceof Error ? r.reason.message : String(r.reason),
         };
       }
     }

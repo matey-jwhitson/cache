@@ -50,7 +50,7 @@ export const weeklyContent = inngest.createFunction(
       const blogPosts = await db.contentItem.findMany({
         where: { sourceType: "rss" },
         orderBy: { createdAt: "desc" },
-        take: 200,
+        take: 50,
       });
 
       const orgSchema = buildOrganizationSchema(brand, blogPosts);
@@ -109,7 +109,7 @@ export const weeklyContent = inngest.createFunction(
       const blogPosts = await db.contentItem.findMany({
         where: { sourceType: "rss" },
         orderBy: { createdAt: "desc" },
-        take: 200,
+        take: 50,
       });
 
       if (blogPosts.length === 0) return { total: 0, failed: 0 };
