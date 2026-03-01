@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,22 +41,34 @@ type Tab = (typeof TABS)[number];
 
 export function SourcesTabs({ sources, items }: SourcesTabsProps) {
   const [tab, setTab] = useState<Tab>("RSS");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const router = useRouter();
 
-  function handleAddSource(formData: FormData) {
-    startTransition(async () => {
+  async function handleAddSource(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setIsPending(true);
+    try {
       await addContentSource(formData);
+      e.currentTarget.reset();
       router.refresh();
-    });
+    } finally {
+      setIsPending(false);
+    }
   }
 
-  function handleAddManual(formData: FormData) {
-    startTransition(async () => {
+  async function handleAddManual(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    setIsPending(true);
+    try {
       await submitManualContent(formData);
+      e.currentTarget.reset();
       router.refresh();
-    });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   const filteredItems = items.filter(
@@ -89,7 +101,7 @@ export function SourcesTabs({ sources, items }: SourcesTabsProps) {
               <CardTitle>Add RSS Feed</CardTitle>
             </CardHeader>
             <CardContent>
-              <form action={handleAddSource} className="flex flex-wrap gap-3">
+              <form onSubmit={handleAddSource} className="flex flex-wrap gap-3">
                 <input type="hidden" name="sourceType" value="rss" />
                 <Input name="name" placeholder="Feed name" required className="w-48" />
                 <Input name="url" placeholder="https://..." type="url" required className="flex-1" />
@@ -114,7 +126,7 @@ export function SourcesTabs({ sources, items }: SourcesTabsProps) {
             <CardTitle>Submit Content</CardTitle>
           </CardHeader>
           <CardContent>
-            <form action={handleAddManual} className="space-y-4">
+            <form onSubmit={handleAddManual} className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-zinc-400">Title</label>
