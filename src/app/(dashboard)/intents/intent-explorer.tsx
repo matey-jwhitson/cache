@@ -97,7 +97,10 @@ export function IntentExplorer({ results, providers }: IntentExplorerProps) {
         <div className="space-y-2">
           {filtered.map((r) => {
             const isOpen = expanded.has(r.id);
-            const intent = (r.meta?.intent as string) ?? "unknown";
+            const headline = r.promptText
+              ?? ((r.meta?.intent as string) ?? "unknown")
+                  .replace(/_/g, " ")
+                  .replace(/\b\w/g, (c) => c.toUpperCase());
             return (
               <div
                 key={r.id}
@@ -113,8 +116,8 @@ export function IntentExplorer({ results, providers }: IntentExplorerProps) {
                     <ChevronRight className="h-4 w-4 shrink-0 text-zinc-500" />
                   )}
                   <div className="flex flex-1 flex-wrap items-center gap-2">
-                    <span className="text-sm font-medium text-white">
-                      {intent}
+                    <span className="line-clamp-1 text-sm font-medium text-white">
+                      {headline}
                     </span>
                     <Badge variant="secondary">{r.provider}</Badge>
                     <Badge
@@ -130,19 +133,6 @@ export function IntentExplorer({ results, providers }: IntentExplorerProps) {
                     </span>
                   </div>
                 </button>
-
-                {!isOpen && (
-                  <div className="flex items-start gap-2 border-t border-zinc-800/50 px-4 py-2">
-                    <MessageSquare className="mt-0.5 h-3 w-3 shrink-0 text-blue-400/60" />
-                    <p className="line-clamp-1 text-xs text-zinc-500">
-                      {r.promptText ?? (
-                        <span className="italic">
-                          Previous audit — run a new audit to see updated prompts
-                        </span>
-                      )}
-                    </p>
-                  </div>
-                )}
 
                 {isOpen && (
                   <div className="space-y-3 border-t border-zinc-800 px-4 py-3">
