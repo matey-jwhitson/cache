@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   DollarSign,
-  BarChart3,
   TrendingUp,
   Search,
   FileText,
@@ -35,39 +34,33 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Operations",
-    items: [
-      { href: "/", label: "Control Panel", icon: LayoutDashboard },
-      { href: "/cost", label: "Cost Dashboard", icon: DollarSign },
-    ],
+    title: "",
+    items: [{ href: "/", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: "Audit & Analysis",
+    title: "Monitor",
     items: [
-      { href: "/overview", label: "Overview", icon: BarChart3 },
       { href: "/trends", label: "Trends", icon: TrendingUp },
-      { href: "/intents", label: "Intent Explorer", icon: Search },
-      { href: "/alignment", label: "Alignment", icon: Grid3X3 },
-    ],
-  },
-  {
-    title: "Content",
-    items: [
-      { href: "/content", label: "Content", icon: FileText },
-      { href: "/content-qa", label: "Content QA", icon: CheckCircle },
+      { href: "/intents", label: "Audit Explorer", icon: Search },
+      { href: "/alignment", label: "Brand Alignment", icon: Grid3X3 },
       { href: "/reinforcement", label: "Reinforcement", icon: Repeat },
     ],
   },
   {
-    title: "Brand",
+    title: "Configure",
     items: [
       { href: "/brand", label: "Brand Bible", icon: Building2 },
       { href: "/sources", label: "Content Sources", icon: Database },
+      { href: "/content", label: "Content Library", icon: FileText },
+      { href: "/content-qa", label: "Content QA", icon: CheckCircle },
     ],
   },
   {
     title: "System",
-    items: [{ href: "/changelog", label: "Changelog", icon: ClipboardList }],
+    items: [
+      { href: "/cost", label: "Costs", icon: DollarSign },
+      { href: "/changelog", label: "Changelog", icon: ClipboardList },
+    ],
   },
 ];
 
@@ -109,7 +102,7 @@ export function SidebarNav({ userName, userImage }: SidebarNavProps) {
         <div className="space-y-4">
           {NAV_GROUPS.map((group) => (
             <div key={group.title}>
-              {!collapsed && (
+              {!collapsed && group.title && (
                 <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">
                   {group.title}
                 </p>
