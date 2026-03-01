@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select } from "@/components/ui/select";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { addContentSource, submitManualContent } from "@/lib/actions/sources";
-import { Plus, Loader2 } from "lucide-react";
+import { deleteContentSource } from "@/lib/actions/content-source-actions";
+import { Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
@@ -116,6 +117,10 @@ export function SourcesTabs({ sources, items }: SourcesTabsProps) {
           <SourcesTable
             sources={sources.filter((s) => s.sourceType === "rss")}
             emptyMessage="No RSS feeds configured"
+            onDelete={async (id) => {
+              await deleteContentSource(id);
+              router.refresh();
+            }}
           />
         </div>
       )}
@@ -216,16 +221,30 @@ export function SourcesTabs({ sources, items }: SourcesTabsProps) {
 function SourcesTable({
   sources,
   emptyMessage,
+  onDelete,
 }: {
   sources: Source[];
   emptyMessage: string;
+  onDelete?: (id: string) => Promise<void>;
 }) {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   if (sources.length === 0) {
     return (
       <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-8 text-center text-sm text-zinc-500">
         {emptyMessage}
       </div>
     );
+  }
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Remove "${name}" from your feeds?`)) return;
+    setDeletingId(id);
+    try {
+      await onDelete?.(id);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -237,6 +256,7 @@ function SourcesTable({
             <th className="px-4 py-3 text-left font-medium text-zinc-400">URL</th>
             <th className="px-4 py-3 text-left font-medium text-zinc-400">Status</th>
             <th className="px-4 py-3 text-left font-medium text-zinc-400">Last Fetched</th>
+            <th className="w-16 px-4 py-3" />
           </tr>
         </thead>
         <tbody className="bg-zinc-900">
@@ -253,6 +273,20 @@ function SourcesTable({
               </td>
               <td className="px-4 py-3 text-zinc-400">
                 {s.lastFetchedAt ? new Date(s.lastFetchedAt).toLocaleDateString() : "Never"}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <button
+                  onClick={() => handleDelete(s.id, s.name)}
+                  disabled={deletingId === s.id}
+                  className="rounded p-1.5 text-zinc-500 transition-colors hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                  title="Remove feed"
+                >
+                  {deletingId === s.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               </td>
             </tr>
           ))}
