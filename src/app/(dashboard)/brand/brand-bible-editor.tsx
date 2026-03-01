@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,73 +86,75 @@ export function BrandBibleEditor({ initial }: Props) {
     initial ? brandToForm(initial) : emptyForm(),
   );
   const [rawText, setRawText] = useState(initial?.rawDocument ?? "");
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   function patch(updates: Partial<FormState>) {
     setForm((prev) => ({ ...prev, ...updates }));
   }
 
-  function handleAnalyze() {
+  async function handleAnalyze() {
     if (!rawText.trim()) return;
     setStatus(null);
-    startTransition(async () => {
-      try {
-        const extracted = await analyzeBrandDocument(rawText);
-        setForm({
-          name: extracted.name || form.name,
-          url: extracted.url || form.url,
-          logoUrl: extracted.logoUrl || "",
-          tagline: extracted.tagline || "",
-          mission: extracted.mission || "",
-          valueProposition: extracted.valueProposition || "",
-          industry: extracted.industry || "",
-          geoFocus: extracted.geoFocus || [],
-          voiceAttributes: extracted.voiceAttributes || ["professional"],
-          tonePerChannel: {},
-          readingLevel: extracted.readingLevel || "",
-          topicPillars: extracted.topicPillars || [],
-          targetAudiences: (extracted.targetAudiences || []).map((a) => ({
-            name: a.name,
-            description: a.description,
-            painPoints: a.painPoints || [],
-            goals: a.goals || [],
-            jobsToBeDone: a.jobsToBeDone || [],
-            geos: a.geos || [],
-            segments: a.segments || [],
-          })),
-          terminologyDos: extracted.terminologyDos || [],
-          terminologyDonts: extracted.terminologyDonts || [],
-          contentRules: extracted.contentRules || [],
-          benefits: extracted.benefits || [],
-          productFeatures: extracted.productFeatures || [],
-          competitors: extracted.competitors || [],
-          differentiators: extracted.differentiators || [],
-          boilerplateAbout: extracted.boilerplateAbout || "",
-          boilerplateDisclaimer: extracted.boilerplateDisclaimer || "",
-        });
-        setMode("edit");
-        setStatus("AI extraction complete — review and save.");
-      } catch (err) {
-        setStatus(
-          `Error: ${err instanceof Error ? err.message : "Extraction failed"}`,
-        );
-      }
-    });
+    setIsPending(true);
+    try {
+      const extracted = await analyzeBrandDocument(rawText);
+      setForm({
+        name: extracted.name || form.name,
+        url: extracted.url || form.url,
+        logoUrl: extracted.logoUrl || "",
+        tagline: extracted.tagline || "",
+        mission: extracted.mission || "",
+        valueProposition: extracted.valueProposition || "",
+        industry: extracted.industry || "",
+        geoFocus: extracted.geoFocus || [],
+        voiceAttributes: extracted.voiceAttributes || ["professional"],
+        tonePerChannel: {},
+        readingLevel: extracted.readingLevel || "",
+        topicPillars: extracted.topicPillars || [],
+        targetAudiences: (extracted.targetAudiences || []).map((a) => ({
+          name: a.name,
+          description: a.description,
+          painPoints: a.painPoints || [],
+          goals: a.goals || [],
+          jobsToBeDone: a.jobsToBeDone || [],
+          geos: a.geos || [],
+          segments: a.segments || [],
+        })),
+        terminologyDos: extracted.terminologyDos || [],
+        terminologyDonts: extracted.terminologyDonts || [],
+        contentRules: extracted.contentRules || [],
+        benefits: extracted.benefits || [],
+        productFeatures: extracted.productFeatures || [],
+        competitors: extracted.competitors || [],
+        differentiators: extracted.differentiators || [],
+        boilerplateAbout: extracted.boilerplateAbout || "",
+        boilerplateDisclaimer: extracted.boilerplateDisclaimer || "",
+      });
+      setMode("edit");
+      setStatus("AI extraction complete — review and save.");
+    } catch (err) {
+      setStatus(
+        `Error: ${err instanceof Error ? err.message : "Extraction failed"}`,
+      );
+    } finally {
+      setIsPending(false);
+    }
   }
 
-  function handleSave() {
+  async function handleSave() {
     setStatus(null);
-    startTransition(async () => {
-      try {
-        await saveBrandBible(form, rawText || undefined);
-        setStatus("Brand Bible saved successfully.");
-      } catch (err) {
-        setStatus(
-          `Error: ${err instanceof Error ? err.message : "Save failed"}`,
-        );
-      }
-    });
+    setIsPending(true);
+    try {
+      await saveBrandBible(form, rawText || undefined);
+      setStatus("Brand Bible saved successfully.");
+    } catch (err) {
+      setStatus(
+        `Error: ${err instanceof Error ? err.message : "Save failed"}`,
+      );
+    } finally {
+      setIsPending(false);
+    }
   }
 
   if (mode === "import") {
