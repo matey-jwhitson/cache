@@ -120,7 +120,9 @@ export function SidebarNav({ userName, userImage }: SidebarNavProps) {
               <ul className="space-y-0.5">
                 {group.items.map(({ href, label, icon: Icon }) => {
                   const active =
-                    href === "/" ? pathname === "/" : pathname.startsWith(href);
+                    href === "/"
+                      ? pathname === "/"
+                      : pathname === href || pathname.startsWith(href + "/");
                   return (
                     <li key={href}>
                       <Link
